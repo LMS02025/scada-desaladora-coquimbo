@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SCADA · Planta Desaladora Coquimbo – P&ID unificado (simulador)</title>
+<style id="appcss">
+:root{--bg:#0a1017;--panel:#111a24;--panel2:#16222f;--line:#263649;--tx:#d3e2f1;--dim:#7b90a6;--ok:#2fd27a;--bad:#ff4b4b;--warn:#f5b83d;--man:#4aa8ff;--seq:#b68cff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px/1.35 "Segoe UI",system-ui,Roboto,sans-serif}
+body{display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:1fr 390px;grid-template-areas:"hd hd" "st sd" "ft ft"}
+button,select,input{font:inherit;color:var(--tx)}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:#4b6784;background:#1b2b3c}
+button.on{background:#1d4d7a;border-color:#4aa8ff}
+button.mode.on{background:#1d6b45;border-color:var(--ok)}
+select{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:3px 6px}
+header{grid-area:hd;display:flex;align-items:center;gap:8px;padding:6px 12px;background:#0d151e;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:15px;margin:0 10px 0 0;font-weight:700;letter-spacing:.02em}
+header h1 small{display:block;font-weight:400;color:var(--dim);font-size:11px}
+.sp{flex:1}
+#clock{font:600 14px Consolas,monospace;color:#9fd0ff;padding:3px 8px;background:#0a1017;border:1px solid var(--line);border-radius:5px}
+#almBadge{padding:3px 10px;border-radius:5px;background:#1a2430;border:1px solid var(--line);font-weight:700;cursor:pointer}
+#almBadge.act{background:#4a1414;border-color:var(--bad);color:#ffb3b3}
+#almBadge.flash{animation:bl 1s steps(2) infinite}
+.zbtn{padding:3px 7px;font-size:11px}
+details.menu{position:relative}
+details.menu summary{list-style:none;cursor:pointer;background:#1d4d7a;border:1px solid #4aa8ff;border-radius:5px;padding:4px 10px}
+details.menu summary::-webkit-details-marker{display:none}
+details.menu div{position:absolute;right:0;top:30px;z-index:20;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:230px}
+#stage{grid-area:st;position:relative;overflow:hidden;background:var(--bg);cursor:grab}
+#stage:active{cursor:grabbing}
+#pid{width:100%;height:100%;display:block;touch-action:none;user-select:none}
+#legend{position:absolute;left:10px;bottom:10px;background:#0d151ecc;border:1px solid var(--line);border-radius:6px;padding:6px 8px;display:flex;gap:10px;flex-wrap:wrap;max-width:70%;font-size:11px;pointer-events:none}
+#legend i{display:inline-block;width:14px;height:5px;border-radius:2px;margin-right:4px;vertical-align:middle}
+#hint{position:absolute;right:10px;bottom:10px;color:var(--dim);font-size:11px;pointer-events:none}
+aside{grid-area:sd;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#tabs{display:flex;flex-wrap:wrap;gap:2px;padding:6px 6px 0;border-bottom:1px solid var(--line)}
+#tabs button{border-radius:5px 5px 0 0;border-bottom:none;font-size:12px;padding:4px 8px}
+.panes{flex:1;min-height:0;position:relative}
+.pane{display:none;position:absolute;inset:0;padding:10px;overflow:auto}
+.pane.on{display:block}
+footer{grid-area:ft;display:flex;gap:6px;padding:6px 10px;background:#0d151e;border-top:1px solid var(--line);overflow-x:auto}
+.kpi{min-width:98px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+.kpi b{display:block;font:700 15px Consolas,monospace;color:#7ee0a8}
+.kpi span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+.kpi small{color:var(--dim);font-size:10px;margin-left:3px}
+h3{margin:0 0 6px;font-size:13px}
+h4{margin:12px 0 4px;font-size:12px;color:#9fb6cc;text-transform:uppercase;letter-spacing:.05em}
+table{width:100%;border-collapse:collapse}
+td{padding:3px 4px;border-bottom:1px solid #1b2836;vertical-align:top}
+td:first-child{color:var(--dim);width:48%}
+td.v{font:600 12px Consolas,monospace}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.btns{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.alm-item{display:flex;gap:8px;padding:5px 6px;border-left:4px solid var(--bad);background:#1a1f28;margin-bottom:4px;border-radius:3px;cursor:pointer}
+.alm-item.p2{border-color:var(--warn)}.alm-item.p3{border-color:var(--man)}
+.alm-item.un{animation:bl 1s steps(2) infinite}
+.alm-item.off{opacity:.45;border-color:#3b4a5a}
+.alm-item b{font:700 11px Consolas,monospace;color:#cfe3f7;min-width:82px}
+.logrow{font:11px Consolas,monospace;padding:2px 0;border-bottom:1px solid #1b2836}
+.logrow.bad{color:#ff9a9a}.logrow.ok{color:#8fe0b0}.logrow.man{color:#8fc3ff}
+.sl{display:grid;grid-template-columns:1fr 70px;gap:4px 8px;align-items:center;margin:6px 0}
+.sl input[type=range]{width:100%}
+.sl output{font:600 12px Consolas,monospace;text-align:right}
+.tg2{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.tg2 button{text-align:left}
+.tg2 button.on{background:#5a1c1c;border-color:var(--bad)}
+canvas#cv{width:100%;height:230px;background:#0a1017;border:1px solid var(--line);border-radius:6px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.chips label{font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:2px 8px;cursor:pointer}
+.chips label.on{border-color:#4aa8ff;background:#17324a}
+.chips input{display:none}
+.legrow{display:flex;gap:6px;align-items:center;font-size:12px;padding:2px 0}
+.legrow i{width:10px;height:10px;border-radius:2px}
+.info p,.info li{color:#b8c9db;font-size:12px}
+.info ul{padding-left:18px;margin:4px 0}
+@keyframes bl{50%{opacity:.3}}
+#pid .pipe{fill:none;stroke-linejoin:round}
+#pid .flow{fill:none;stroke:#fff;stroke-opacity:.6;stroke-dasharray:5 13;stroke-linecap:round;animation:fl 1s linear infinite}
+@keyframes fl{to{stroke-dashoffset:-18}}
+#pid.paused .flow{animation-play-state:paused}
+#pid .eq{cursor:pointer}
+#pid .eq:hover .hl{stroke:#fff}
+#pid .sel .hl{stroke:#ffd54a;stroke-width:2.4}
+#pid .alm{animation:bl .8s steps(2) infinite}
+#pid .tg{font:9px "Segoe UI",sans-serif;fill:#9fb3c8}
+#pid .sub{font:8px Consolas,monospace;fill:#7f95ab}
+#pid .zt{font:700 14px "Segoe UI",sans-serif;fill:#4f6a85;letter-spacing:.07em}
+#pid .zs{font:11px "Segoe UI",sans-serif;fill:#5b7490}
+#pid .nm{font:600 10px "Segoe UI",sans-serif;fill:#c5d6e8}
+#pid .it{font:7.5px "Segoe UI",sans-serif;fill:#b7c8da}
+#pid .iv{font:600 10.5px Consolas,monospace;fill:#7ee0a8}
+#pid .big{font:700 12px Consolas,monospace;fill:#e6f1fb}
+#vbtns{display:inline-flex;gap:3px;margin:0 4px}
+#vbtns button{padding:4px 9px}
+#views{grid-area:st;display:none;overflow:auto;background:var(--bg);padding:14px 18px 24px}
+.vh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.vh h2{margin:0;font-size:18px}
+.vh span{color:var(--dim);font-size:12px}
+.vgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));margin-bottom:12px}
+.kgrid{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+.card.wide{grid-column:1/-1}
+.card h3{margin:0 0 8px;font-size:13px;color:#cfe3f7}
+.card p.note{color:var(--dim);font-size:11px;margin:6px 0 0}
+.kc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kc span{display:block;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+.kc b{font:700 22px Consolas,monospace;color:#7ee0a8}
+.kc small{color:var(--dim);margin-left:4px}
+.kc i{display:block;font-style:normal;font-size:10px;color:var(--dim);margin-top:2px}
+table.dt{width:100%;border-collapse:collapse;font-size:12px}
+table.dt th{position:sticky;top:0;background:var(--panel);text-align:right;font-weight:600;color:#9fb6cc;padding:4px 6px;border-bottom:1px solid var(--line);font-size:11px}
+table.dt th:first-child,table.dt td:first-child{text-align:left}
+table.dt td{padding:3px 6px;border-bottom:1px solid #1b2836;text-align:right;color:var(--tx);width:auto;font-family:Consolas,monospace;font-size:12px}
+table.dt td:first-child{width:auto;font-family:inherit;color:var(--tx)}
+table.dt td.tl,table.dt th.tl{text-align:left;font-family:inherit}
+table.dt tr.cur td{background:#143250}
+table.dt tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+table.dt tr.dim td{color:var(--dim)}
+.bar{height:9px;background:#18283a;border-radius:5px;overflow:hidden;min-width:70px}
+.bar i{display:block;height:100%;border-radius:5px}
+.stack{display:flex;height:26px;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.stack i{display:block;height:100%}
+.lg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11px}
+.lg span i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font:700 10px "Segoe UI",sans-serif;color:#fff;letter-spacing:.03em}
+.pill.C{background:#1f8f5b}.pill.P{background:#b58900}.pill.N{background:#5e6c7b}.pill.D{background:#c2410c}.pill.ok{background:#1f8f5b}.pill.bad{background:#c0392b}.pill.warn{background:#b58900}
+canvas.vc{width:100%;height:260px;background:#0a1017;border:1px solid var(--line);border-radius:6px;display:block}
+.rg{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center}
+.rg input[type=number]{width:110px;font:700 22px Consolas,monospace;background:#0a1017;border:1px solid #4aa8ff;border-radius:6px;padding:4px 8px;color:#fff}
+.rg input[type=range]{width:100%}
+.rg select{padding:3px 6px}
+.chipb{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.chipb button{padding:3px 9px;font-size:12px}
+.big{font:700 28px Consolas,monospace}
+.gauge{position:relative;height:26px;background:#0a1017;border:1px solid var(--line);border-radius:6px;margin:8px 0 18px}
+.gauge .f{position:absolute;left:0;top:0;bottom:0;background:#1d4d7a;border-radius:5px}
+.gauge .f2{position:absolute;left:0;top:0;bottom:0;background:#2fd27a;opacity:.75;border-radius:5px;height:50%;top:50%}
+.gauge .tk{position:absolute;top:0;bottom:0;width:1px;background:#3a5069}
+.gauge .tk em{position:absolute;top:27px;left:-14px;font:10px Consolas,monospace;color:var(--dim);font-style:normal;width:30px;text-align:center}
+.gauge .sp{position:absolute;top:-4px;bottom:-4px;width:3px;background:#ffd54a}
+.cmpf{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;align-items:center}
+.cmpf label{font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:2px 9px;cursor:pointer}
+.cmpf label.on{border-color:#4aa8ff;background:#17324a}
+.cmpf input[type=text]{background:#0a1017;border:1px solid var(--line);border-radius:5px;padding:3px 8px;min-width:200px}
+table.cm td,table.cm th{vertical-align:top;text-align:left}
+table.cm td{font-family:inherit;font-size:12px;line-height:1.35}
+table.cm td:nth-child(1){white-space:nowrap}
+table.cm td:nth-child(2){white-space:nowrap;color:#9fb6cc}
+@media print{#views{display:block!important;overflow:visible}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Planta Desaladora Coquimbo · SCADA / P&amp;ID unificado<small>Maitencillo de Panul · 16059-ILF · Simulador de proceso (no conectado a PLC)</small></h1>
+  <button id="btnRun" class="on">⏸ Pausa</button>
+  <label>Velocidad <select id="selSpeed"><option value="1">×1</option><option value="10">×10</option><option value="60" selected>×60</option><option value="300">×300</option><option value="900">×900</option></select></label>
+  <label>Fase <select id="selPhase"><option value="1">Fase 1 (4+1)</option><option value="2">Fase 2 (5+1)</option><option value="3" selected>Fase 3 (6+1)</option></select></label>
+  <span id="vbtns"><button data-v="pid" class="on">P&amp;ID</button><button data-v="energy">⚡ Energía</button><button data-v="eff">📈 Eficiencia</button><button data-v="reg">🎚 Regulación Q</button><button data-v="cum">✔ Cumplimiento</button></span>
+  <span id="clock">—</span>
+  <span id="almBadge" title="Ir a alarmas">Alarmas: 0</span>
+  <span class="sp"></span>
+  <span id="zbtns"></span>
+  <button id="zin" title="Acercar">＋</button><button id="zout" title="Alejar">－</button><button id="zfit">Ajustar</button>
+  <details class="menu"><summary>⬇ Exportar</summary><div>
+    <button id="exHtml">HTML autónomo (con estado actual)</button>
+    <button id="exSvg">Esquema P&amp;ID (SVG)</button>
+    <button id="exPng">Esquema P&amp;ID (PNG)</button>
+    <button id="exCsv">Historiador (CSV)</button>
+    <button id="exJson">Estado de tags (JSON)</button>
+  </div></details>
+</header>
+
+<div id="stage">
+<svg id="pid" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3300 1480">
+  <g id="bg"></g><g id="pipes"></g><g id="eqs"></g>
+</svg>
+<div id="legend" class="dyn"></div>
+<div id="hint">Rueda: zoom · Arrastrar: desplazar · Clic en equipo: faceplate</div>
+</div>
+<div id="views" class="dyn"></div>
+
+<aside>
+  <div id="tabs">
+    <button data-t="face" class="on">Equipo</button>
+    <button data-t="alm">Alarmas</button>
+    <button data-t="trend">Tendencias</button>
+    <button data-t="scen">Escenarios</button>
+    <button data-t="log">Eventos</button>
+    <button data-t="info">Info</button>
+  </div>
+  <div class="panes">
+    <div class="pane on dyn" id="p-face"></div>
+    <div class="pane dyn" id="p-alm"></div>
+    <div class="pane" id="p-trend"><canvas id="cv"></canvas><div class="chips dyn" id="chips"></div><div class="dyn" id="trLeg"></div></div>
+    <div class="pane dyn" id="p-scen"></div>
+    <div class="pane dyn" id="p-log"></div>
+    <div class="pane info" id="p-info">
+      <h3>Alcance y supuestos</h3>
+      <p>Esquema unificado construido a partir de los 19 P&amp;ID (16059-ILF-00-BS-HP-PID-0002 a -0023 y simbología -0021), Rev. 0, 2023, y verificado contra la Filosofía de Control (…-IC-INF-0001), los Criterios de Diseño de Procesos (…-CRI-0001) y la Filosofía de Operación del Sistema (…-HP-INF-0005). Es un modelo <b>didáctico</b>, no un modelo de proceso validado ni un gemelo digital.</p><h4>Pantallas</h4><ul><li><b>P&amp;ID</b>: esquema operable. <b>⚡ Energía</b>: consumo por sistema y por equipo. <b>📈 Eficiencia</b>: SEC, rendimientos y punto de operación. <b>🎚 Regulación Q</b>: consigna de producción hasta 1.200 L/s. <b>✔ Cumplimiento</b>: matriz de verificación contra los tres documentos.</li></ul>
+      <h4>Tomado de los P&amp;ID</h4>
+      <ul>
+        <li>Tags de equipos, capacidades y potencias (bombas, estanques, prefiltros, racks UF/OI, contactores de calcita, compresores).</li>
+        <li>Configuración por fases: captación y alimentación UF 4+1 / 5+1 / 6+1; prefiltros 16/20/24; OI 4/5/6 racks (1.614 m³/h alimentación, ~720 m³/h permeado por rack).</li>
+        <li>Enclavamientos citados en las láminas: LALL 33201, PAH de bombas, LAHH 36221, PSH 34031, AAHH (HC) en captación, aire de instrumentos para válvulas neumáticas.</li>
+      </ul>
+      <h4>Supuestos (validar)</h4>
+      <ul>
+        <li>Volúmenes sin dato en los documentos: estanque agua de mar 6.000 m³; estanque agua remineralizada 8.000 m³ (sin lámina); cámara de carga 120 m³ y su hidráulica de descarga.</li>
+        <li>Valores de diseño de OPE/CRI: OI 44,8 % (723,5 / 1.614,2 m³/h por rack), UF 92 %, BW de UF 50 s cada 55 min + 66 s de stand-by, CEB 1+2 cada 24 h, prefiltros 480 m³/h con retrolavado a 0,5 bar durante 18 s con salmuera.</li><li>Supuestos propios: carga mínima por rack OI 70 %; rampa de consigna 20 L/s/min; VDF hasta 105 %; rendimientos hidráulicos 78–88 % con curvas típicas y motor+VDF 94–95 %; presión OI a partir de presión osmótica y flux (no es un modelo de membranas).</li>
+        <li>Numeración de racks UF por fase (12/3/3) y bombas AP 1340-PP-007…012 inferida de las láminas; revisar contra listas de equipos.</li>
+        <li>Asignación de lazos (p. ej. PIT 34019…, FIT 34231…) es tipificada; confirmar contra lista de instrumentos.</li>
+        <li>La potencia de cada bomba se calcula con altura × caudal / rendimiento (no es un % fijo de placa); los auxiliares (rejas, químicos, edificios, instrumentación) son supuestos. La mezcla de pH en neutralización es una estimación simple.</li>
+        <li>Sistemas sin P&amp;ID en el set (reactivos, CO₂, cloración, red contra incendios) se muestran solo como valores indicativos.</li>
+      </ul>
+      <h4>Uso</h4>
+      <ul>
+        <li>Clic en cualquier equipo para operarlo (Marcha/Parada/AUTO/MAN, abrir/cerrar, BW/CEB/CIP, arrancar/detener racks OI).</li>
+        <li>La pestaña <b>Escenarios</b> inyecta fallas para observar enclavamientos y alarmas.</li>
+        <li><b>Exportar → HTML autónomo</b> genera una copia que reanuda en el estado actual.</li>
+      </ul>
+    </div>
+  </div>
+</aside>
+<footer id="kpis" class="dyn"></footer>
+
+<script>
+(function(){
+'use strict';
+/*==SIM_START==*/
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const S={},EQ={},G={},V={},RO=[],UF=[],PF=[],CC=[],FR=[],PUMPS=[],A={};
+const mk=o=>(EQ[o.id]=o);
+function logEv(k,x,c){S.log.unshift({t:S.t,k:k,x:x,c:c||''});if(S.log.length>500)S.log.pop();}
+function addPumps(grp,prefix,nums,phs,kw,qn,name,pid,vfd){
+  G[grp]=G[grp]||[];
+  nums.forEach((n,i)=>{const o=mk({id:prefix+String(n).padStart(3,'0'),kind:'pump',grp:grp,name:name,kw:kw,qn:qn,ph:phs[i],pid:pid,vfd:vfd,run:false,mode:'AUTO',fault:false,trip:'',blk:false,hrs:100+((i*53+n*17)%140),qNow:0,kwNow:0,spd:0,eta:0,hyd:0,dpNow:0});G[grp].push(o);PUMPS.push(o);});
+}
+const seq=(a,b)=>{const r=[];for(let i=a;i<=b;i++)r.push(i);return r;};
+addPumps('INT','1320-PP-',seq(1,7),[1,1,1,1,1,2,3],1120,1790,'Bomba de agua de mar (captación)','0003',true);
+addPumps('UFF','1332-PP-',seq(1,7),[1,1,1,1,1,2,3],355,1755,'Bomba alimentación ultrafiltración','0020',true);
+addPumps('BWP','1334-PP-',[1,2,5],[1,1,1],90,480,'Bomba retrolavado prefiltros (salmuera)','0010',true);
+addPumps('BWU','1336-PP-',[1,3,4],[1,1,1],250,2061,'Bomba BW / CEB ultrafiltración','0011',true);
+addPumps('CIPU','1336-PP-',[17,18],[1,1],18.5,224,'Bomba CIP UF','0012',true);
+addPumps('HP','1340-PP-',seq(7,12),[1,1,1,1,2,3],1600,730,'Bomba de alta presión OI','0015',true);
+addPumps('BST','1340-PP-',seq(13,18),[1,1,1,1,2,3],250,884,'Bomba booster ERD','0015',true);
+addPumps('PEAP','1353-PP-',seq(1,7),[1,1,1,1,1,2,3],250,720,'Bomba agua potable (PEAP)','0018 / 0019',true);
+addPumps('NEU','1362-PP-',[1,2],[1,1],55,585,'Bomba de neutralización','0008',false);
+addPumps('CIPR','1344-PP-',[1],[1],185,744,'Bomba flushing / CIP OI','0013',true);
+addPumps('CMP','1331-CP-',[1,2],[1,1],160,2520,'Compresor de aire tipo tornillo','0016',false);
+function addV(key,id,name,open,pid){V[key]=mk({id:id,kind:'valve',name:name,open:open,def:open,pid:pid,mode:'MAN'});}
+addV('cap','48"-BFV-0133','Válvula de aislación línea de captación 48"',true,'0003');
+addV('byp','48"-BFV-0892','By-pass alimentación → cámara de rechazo (normal cerrada)',false,'0020');
+addV('uff','48"-BFV-0264','Válvula descarga bombas alimentación UF 48"',true,'0020');
+addV('peap','36"-BFV-2010','Válvula de entrega agua potable a cliente 36"',true,'0018');
+addV('emi','40"-BFV-0830','Válvula de descarga de rechazo hacia cámara de carga / emisario 40"',true,'0009');
+[['1332-TK-001','sw','Estanque de agua de mar','0020'],['1334-TK-001','bwP','Estanque retrolavado prefiltros (32 m³) – salmuera de OI','0010'],['1336-TK-001','bwU','Estanque retrolavado UF (450 m³)','0011'],['EST-REM','rem','Estanque agua remineralizada (sin P&ID en el set)','0018'],['1362-TK-005','rej','Cámara de rechazo (252 m³)','0009'],['1362-TK-001','neu','Estanque de neutralización (196 m³)','0008'],['CAM-CARGA','cc','Cámara de carga en la costa (volumen supuesto 120 m³; sin lámina en el set)','0009']].forEach(t=>mk({id:t[0],kind:'tank',key:t[1],name:t[2],pid:t[3]}));
+seq(1,3).forEach(i=>{FR.push(mk({id:'1313-FR-'+String(i).padStart(3,'0'),kind:'fr',name:'Reja mecánica + filtro rotatorio de banda (5.264 m³/h)',pid:'0002',ph:1,run:true,clog:0.08}));});
+seq(1,24).forEach(i=>{PF.push(mk({id:'1334-FL-'+String(i).padStart(3,'0'),kind:'pf',idx:i-1,name:'Prefiltro UF (480 m³/h según filosofía de operación; P&ID 0004 indica 439)',pid:'0004',ph:i<=16?1:i<=20?2:3,state:'SERV',timer:0,foul:0.1,dp:0.3,q:0,force:false,sel:true}));});
+seq(1,18).forEach(i=>{UF.push(mk({id:'1335-UF-'+String(i).padStart(3,'0'),kind:'uf',idx:i-1,name:'Rack de ultrafiltración (585 m³/h nominal, 702 m³/h máx.)',pid:'0005 / 0014',ph:i<=12?1:i<=15?2:3,state:'SERV',mode:'AUTO',timer:0,foul:0.06,irr:0.03,tmp:0.3,q:0,cycles:0,force:null,air:false,sel:true}));});
+seq(1,6).forEach(i=>{RO.push(mk({id:'1340-OS-'+String(i).padStart(3,'0'),kind:'ro',name:'Rack de ósmosis inversa (1.302 membranas)',pid:'0006 / 0015',ph:[1,1,1,1,2,3][i-1],idx:i-1,state:'OFF',mode:'AUTO',fault:false,trip:'',f:0.1,P:0,Pexp:55,qp:0,qf:0,qb:0,cond:0,timer:0,c1:false,want:true,erdKW:0,erd:'1342-RE-'+String(i).padStart(3,'0')}));});
+seq(1,7).forEach(i=>{CC.push(mk({id:'1351-CC-'+String(i).padStart(3,'0'),kind:'cc',name:'Contactor de calcita',pid:'0007',ph:1,dp:0.2}));});
+
+/* ---- parámetros de diseño (docs 16059-ILF-00-BS-IC-INF-0001, ME-HP-CRI-0001, BS-HP-INF-0005) ---- */
+const DES={qpRack:723.5,qfRack:1614.2,rec:723.5/1614.2,qdelRack:720,intUse:0.005,ufEff:0.92,loadMin:0.7,pfQ:480,pfOver:1.05,ufQ:585,ufMax:702,uffQ:1755,uffMax:1.05,intQ:1790,intMax:1.05,erdEff:0.95};
+const NPF=[0,5,9,12,16,20,24],NUF=[0,4,7,9,12,15,18];   /* Tabla 3-4 filosofía de control: prefiltros / racks UF según N racks OI */
+const SYSN=[['cap','Captación de agua de mar'],['pre','Pretratamiento (alim. UF, prefiltros)'],['uf','Ultrafiltración (BW / CEB / CIP)'],['oi','Ósmosis inversa · bombas de alta presión'],['erd','Recuperación de energía · bombas booster ERD'],['cip','CIP / flushing OI'],['post','Post-tratamiento y químicos'],['dist','Distribución · PEAP'],['neu','Neutralización y rechazo'],['aire','Aire comprimido'],['serv','Servicios generales y auxiliares']];
+const GSYS={INT:'cap',UFF:'pre',BWP:'pre',BWU:'uf',CIPU:'uf',HP:'oi',BST:'erd',CIPR:'cip',PEAP:'dist',NEU:'neu',CMP:'aire'};
+const AUXE=[{id:'AUX-FR',name:'Rejas y filtros rotatorios (3 × 22 kW, supuesto)',sys:'cap'},{id:'AUX-QUIM',name:'Dosificación química, CO₂ y cloración (supuesto)',sys:'post'},{id:'AUX-EDIF',name:'Edificios, climatización e iluminación (supuesto)',sys:'serv'},{id:'AUX-INST',name:'Instrumentación, control y UPS (supuesto)',sys:'serv'}];
+/* hb: rendimiento hidráulico en BEP; dr: rendimiento motor+VDF; Hn: altura de diseño (bar) */
+const PM={INT:{hb:.84,dr:.94,Hn:16.2},UFF:{hb:.82,dr:.94,Hn:5.2},BWP:{hb:.78,dr:.94},BWU:{hb:.82,dr:.94},CIPU:{hb:.7,dr:.94},HP:{hb:.88,dr:.95,Hn:49},BST:{hb:.8,dr:.94,Hn:3.95},CIPR:{hb:.8,dr:.94},PEAP:{hb:.82,dr:.94,Hn:8.7},NEU:{hb:.75,dr:.95},CMP:{hb:1,dr:.93}};
+Object.keys(PM).forEach(g=>{const o=G[g][0];if(PM[g].Hn==null)PM[g].Hn=0.9*o.kw*PM[g].hb*PM[g].dr*36/o.qn;});
+const SYSCURVE={INT:Q=>6+10.2*Math.pow(Q/10740,2),PEAP:Q=>4+4.7*Math.pow(Q/4320,2)};
+
+function plan(Ls,ph){
+  const max=200*(ph+3);Ls=clamp(+Ls||0,200,max);
+  let N=Math.min(ph+3,Math.ceil(Ls/200-1e-9)),sp=Ls;
+  if(Ls/(200*N)<DES.loadMin){const lo=200*(N-1),hi=140*N;if(lo>=200&&(Ls-lo)<=(hi-Ls)){N--;sp=lo;}else{sp=hi;}}
+  return {N:N,sp:sp,load:sp/(200*N),max:max,adj:Math.abs(sp-Ls)>0.5};
+}
+const piF=(tds,T)=>27*tds/35000*(T+273.15)/288.15;                       /* presión osmótica alimentación (bar) */
+const roPcalc=(load,f,T,tds)=>1.35*piF(tds,T)+12*Math.max(0.2,load)*Math.exp(0.03*(15-T))*(1+0.9*f);
+function secMin(tds,T,r){const pi=piF(tds,T);return (pi/r)*Math.log(1/(1-r))*0.027778;}   /* kWh/m³ trabajo reversible */
+/* velocidad (afinidad), rendimiento y potencia de una bomba: q m³/h por bomba, dp bar requeridos */
+function pcalc(g,qn,q,dp){
+  const m=PM[g];if(!(q>0))return {kW:0,eta:0,hyd:0,s:0,dp:0};
+  const H0=1.2*m.Hn,a=0.2*m.Hn/(qn*qn),s=clamp(Math.sqrt(Math.max(0.01,(dp+a*q*q)/H0)),0.35,1.12);
+  const x=q/(s*qn),eta=Math.max(0.3,m.hb*(1-0.35*(1-x)*(1-x))),hyd=q*dp/36;
+  return {kW:hyd/(eta*m.dr),eta:eta,hyd:hyd,s:s,dp:dp,x:x};
+}
+function pKW(o,q,dp){const r=pcalc(o.grp,o.qn,q,dp);o.kwNow=r.kW;o.eta=r.eta;o.hyd=r.hyd;o.dpNow=r.dp;o.spd=o.vfd?r.s*100:(q>0?100:0);return r;}
+function pOff(o){o.kwNow=0;o.eta=0;o.hyd=0;o.dpNow=0;o.spd=0;}
+const avgF=()=>{const L=RO.filter(r=>r.ph<=S.phase);return L.length?L.reduce((s,r)=>s+r.f,0)/L.length:0.1;};
+const avgPFdp=()=>{const L=PF.filter(f=>f.state==='SERV'&&f.ph<=S.phase);return L.length?L.reduce((s,f)=>s+f.dp,0)/L.length:0.3;};
+/* régimen estacionario teórico para una consigna (curva SEC y punto de diseño) */
+function steady(Ls,opt){
+  opt=opt||{};const ph=S.phase,T=opt.T!=null?opt.T:(S.q.temp||S.env.temp),tds=opt.tds||S.env.tds,f=opt.f!=null?opt.f:avgF();
+  const pl=plan(Ls,ph),N=pl.N;if(!N)return null;
+  const qpR=Math.min(DES.qpRack,pl.sp*3.6*(1+DES.intUse)/N),ld=qpR/DES.qpRack,P=roPcalc(ld,f,T,tds),qfR=qpR/DES.rec,qbR=qfR-qpR;
+  const qProd=N*qpR,qFeed=N*qfR/DES.ufEff,pd=opt.pf!=null?opt.pf:avgPFdp(),tm=opt.tmp!=null?opt.tmp:(S.q.tmp||0.45);
+  const nI=Math.max(N,Math.ceil(qFeed/(DES.intQ*DES.intMax)-0.02)),nU=Math.max(N,Math.ceil(qFeed/(DES.uffQ*DES.uffMax)-0.02));
+  const iI=pcalc('INT',DES.intQ,qFeed/nI,SYSCURVE.INT(qFeed)),iU=pcalc('UFF',DES.uffQ,qFeed/nU,4.2+pd+tm-0.2);
+  const hp=pcalc('HP',730,qpR*729.8/723.5,P-4.6),bs=pcalc('BST',884,qfR*884/1614.2,3.0+0.017*P);
+  const delW=pl.sp*3.6,nP=Math.ceil(delW/720-0.05),pe=pcalc('PEAP',720,delW/nP,SYSCURVE.PEAP(delW));
+  const ufN=NUF[N],bw=pcalc('BWU',2061,2061,PM.BWU.Hn),bwk=bw.kW*(ufN*50/3366+ufN*2220/86400);
+  const pfk=pcalc('BWP',480,480,PM.BWP.Hn).kW*(NPF[N]*18/21600);
+  const cmp=160*(0.4+0.55*0.45),aux=66+30+60*clamp(qProd/4342,0,1.2)+120+60;
+  const sys={cap:nI*iI.kW+66,pre:nU*iU.kW+pfk,uf:bwk,oi:N*hp.kW,erd:N*bs.kW,cip:0,post:30+60*clamp(qProd/4342,0,1.2),dist:nP*pe.kW,neu:0.1*pcalc('NEU',585,585,PM.NEU.Hn).kW,aire:cmp,serv:180};
+  const kW=Object.keys(sys).reduce((s,k)=>s+sys[k],0),erd=N*qbR*(P-1.5)/36*DES.erdEff;
+  return {sp:pl.sp,N:N,P:P,kW:kW,qProd:qProd,sec:kW/qProd,sys:sys,erd:erd,secNoERD:(kW+erd/(PM.HP.hb*PM.HP.dr)-N*bs.kW)/qProd,qFeed:qFeed};
+}
+
+const TV=[
+ {k:'qIn',n:'Q captación',u:'m³/h',f:q=>q.qIn},{k:'qFeed',n:'Q alimentación UF',u:'m³/h',f:q=>q.qFeed},
+ {k:'qProd',n:'Q permeado OI',u:'m³/h',f:q=>q.qProd},{k:'qDel',n:'Q entrega cliente',u:'m³/h',f:q=>q.qDel},
+ {k:'qEmi',n:'Q emisario al mar',u:'m³/h',f:q=>q.qEmi},{k:'swPct',n:'Nivel estanque agua de mar',u:'%',f:q=>q.swPct},
+ {k:'remPct',n:'Nivel estanque remin.',u:'%',f:q=>q.remPct},{k:'rejPct',n:'Nivel cámara rechazo',u:'%',f:q=>q.rejPct},
+ {k:'P',n:'Presión alim. OI',u:'bar',f:q=>q.P},{k:'cPerm',n:'Cond. permeado OI',u:'µS/cm',f:q=>q.cPerm},
+ {k:'tmp',n:'TMP UF promedio',u:'bar',f:q=>q.tmp},{k:'kW',n:'Potencia total',u:'kW',f:q=>q.kW},
+ {k:'sec',n:'SEC',u:'kWh/m³',f:q=>q.sec},{k:'airP',n:'Presión aire',u:'bar',f:q=>q.airP},{k:'turb',n:'Turbidez captación',u:'NTU',f:q=>q.turb},
+ {k:'spLs',n:'Consigna efectiva (rampa)',u:'L/s',f:q=>q.spCur},{k:'delLs',n:'Entrega a cliente',u:'L/s',f:q=>q.qDel/3.6},{k:'prodLs',n:'Producción OI',u:'L/s',f:q=>q.qProd/3.6/(1+DES.intUse)}
+];
+
+function neuAdd(vol,pH){const n=S.tk.neu;n.pH=(n.pH*n.v+pH*vol)/Math.max(1e-6,n.v+vol);n.v=Math.min(n.cap,n.v+vol);}
+function setAlm(id,tag,txt,p,on){
+  let a=A[id];if(!a)a=A[id]={id:id,tag:tag,txt:txt,p:p,on:false,ack:true,t:0};
+  a.txt=txt;
+  if(on&&!a.on){a.on=true;a.ack=false;a.t=S.t;logEv('ALM',tag+' · '+txt,'bad');}
+  else if(!on&&a.on){a.on=false;a.ack=true;logEv('RTN',tag+' · normalizada','ok');}
+}
+function evalAlarms(){
+  const q=S.q,ev=S.ev,tk=S.tk,pc=k=>100*tk[k].v/tk[k].cap;
+  const sw=pc('sw'),rem=pc('rem'),rej=pc('rej'),cc=pc('cc');
+  setAlm('blk','ELÉCTRICO','Pérdida de suministro eléctrico general',1,ev.blackout);
+  setAlm('lalsw','LAL 33201','Nivel bajo estanque agua de mar',2,sw<25);
+  setAlm('lallsw','LALL 33201','Nivel muy bajo – disparo bombas alimentación UF',1,sw<10);
+  setAlm('lahsw','LAH 33201','Nivel alto estanque agua de mar – bombas de captación enclavadas',3,sw>92);
+  setAlm('hc','AAHH 32021G','Hidrocarburos en captación – disparo bombas',1,q.hc>1);
+  setAlm('turb','AAH 32021C','Turbidez alta en captación',2,q.turb>15);
+  setAlm('alga','AAH 32021F','Algas altas en captación',2,q.alga>40);
+  setAlm('fr','PDAH 1313-FR','Filtros rotatorios obstruidos',2,Math.max.apply(null,FR.map(f=>f.clog))>0.7);
+  setAlm('pf','PDAH 33402','ΔP prefiltros alta (> 0,7 bar; retrolavado a 0,5 bar)',3,Math.max.apply(null,PF.filter(f=>f.ph<=S.phase).map(f=>f.dp))>0.7);
+  setAlm('uf','TMP UF','TMP alta – CEB requerida',3,Math.max.apply(null,UF.filter(u=>u.ph<=S.phase).map(u=>u.tmp))>1.2);
+  setAlm('ufs','FIT 33223','Capacidad UF/prefiltros insuficiente – producción limitada',3,q.needFeed>1&&q.sc<0.9);
+  setAlm('tUF','AAH UF-T','Turbidez agua ultrafiltrada > 0,3 NTU (alarma)',2,q.turbUF>0.3);
+  setAlm('tUFc','AAHH UF-T','Turbidez agua ultrafiltrada > 0,5 NTU (crítico) – iniciar cuenta atrás de parada rápida',1,q.turbUF>0.5);
+  setAlm('roP','PAH 34031','Presión alimentación OI > 105 % de la esperada',2,q.Pmax>1.05*q.Pexp&&q.Pexp>0);
+  setAlm('roF','OI-FOUL','Ensuciamiento OI alto – CIP recomendado',3,q.fmax>0.5);
+  setAlm('roC','AAH 34001A','Conductividad permeado OI alta',2,q.cPerm>450);
+  setAlm('lahr','LAH 36221','Nivel alto cámara de rechazo',2,rej>85);
+  setAlm('lahhr','LAHH 36221','Nivel muy alto cámara de rechazo – disparo OI',1,rej>95);
+  setAlm('lahcc','LAH CC','Nivel alto cámara de carga (emisario)',2,cc>85);
+  setAlm('neu','AAH 36207A','pH neutralización fuera de 5,5 – 9,0 por > 10 min (límite DS90)',3,(tk.neu.bad||0)>600);
+  setAlm('air1','PAL 30022','Presión baja aire comprimido',2,S.air.p<6.5);
+  setAlm('air2','PAL 30026','Aire crítico – válvulas neumáticas fuera de servicio',1,S.air.p<5.5);
+  setAlm('pH','AAH/AAL 353039','pH producto fuera de 7,0 – 8,5',2,q.pHrem<7||q.pHrem>8.5);
+  setAlm('cl','AAL 353040','Cloro libre residual < 0,2 mg/L',2,q.cl<0.2);
+  setAlm('lrem','LAL EST-REM','Nivel bajo estanque agua remineralizada',2,rem<10);
+  setAlm('hrem','LAH EST-REM','Nivel alto estanque agua remineralizada',3,rem>96);
+  setAlm('spun','FIC 353022','Consigna de producción no alcanzable con los racks disponibles',2,S.sp.tShort>300);
+  PUMPS.forEach(o=>setAlm('F:'+o.id,o.id,'Disparo: '+(o.trip||'falla'),2,o.fault&&o.ph<=S.phase));
+  RO.forEach(r=>setAlm('F:'+r.id,r.id,'Disparo rack: '+(r.trip||'falla'),1,r.fault&&r.ph<=S.phase));
+}
+
+function step(dt){
+  const ph=S.phase,ev=S.ev,env=S.env,tk=S.tk,q=S.q,sp=S.sp,hrs=dt/3600;
+  S.t+=dt;
+  const inPh=o=>o.ph<=ph,avail=o=>inPh(o)&&!o.fault&&!o.blk;
+  const manage=(grp,n,lock)=>{
+    G[grp].forEach(o=>{if(!avail(o))o.run=false;});
+    const L=G[grp].filter(avail),man=L.filter(o=>o.mode==='MAN'&&o.run).length,k=Math.max(0,n-man);
+    L.filter(o=>o.mode==='AUTO').sort((a,b)=>(a.hrs-(a.run?50:0))-(b.hrs-(b.run?50:0))).forEach((o,i)=>{o.run=!lock&&i<k;});
+  };
+  const trip=(o,why)=>{if(o.fault)return;o.run=false;o.fault=true;o.trip=why;logEv('DISPARO',o.id+' · '+why,'bad');};
+  const rtrip=(r,why)=>{if(r.fault)return;r.state='TRIP';r.fault=true;r.trip=why;r.timer=0;logEv('DISPARO',r.id+' · '+why,'bad');};
+  /* ambiente */
+  q.temp=env.temp+1.2*Math.sin(S.t/86400*6.2832);
+  q.turb=Math.max(0.2,env.turb*(1+0.2*Math.sin(S.t/7000))+ev.algae*25);
+  q.fCond=53*env.tds/35000;
+  q.hc=ev.hc?2.4:0.03;q.alga=ev.algae*100+8;q.pfTurb=q.turb*0.1+0.05;
+  q.turbUF=0.06+0.004*q.turb+ev.algae*0.25;
+  const blk=ev.blackout;
+  PUMPS.forEach(o=>{o.blk=blk;if(blk)o.run=false;});
+  const swPct=100*tk.sw.v/tk.sw.cap,remPct=100*tk.rem.v/tk.rem.cap,rejPct=100*tk.rej.v/tk.rej.cap;
+  /* consigna de producción de planta (L/s): protegida al rango de diseño, escalones de 200 L/s = 1 rack, rampa */
+  const pl=plan(sp.Ls,ph);sp.Ls=clamp(sp.Ls,200,pl.max);sp.eff=pl.sp;sp.N=pl.N;sp.adj=pl.adj;
+  const holdTk=remPct>93?Math.max(0.4,(99-remPct)/6):1;
+  const rr=sp.ramp*dt/60;sp.cur+=clamp(pl.sp*holdTk-sp.cur,-rr,rr);q.spCur=sp.cur;
+  /* aire */
+  const nBWu0=UF.filter(u=>u.state==='BW'||u.state==='CEB').length;
+  if(ev.airFail)G.CMP.forEach(o=>{if(o.run)trip(o,'Falla de compresor (simulada)');});
+  manage('CMP',S.air.p<7.5?2:1,false);
+  const nCmp=G.CMP.filter(o=>o.run).length;
+  S.air.p=clamp(nCmp>0?S.air.p+(9.6-S.air.p)*Math.min(1,dt/90)-nBWu0*0.002*dt:S.air.p-(0.004+nBWu0*0.01)*dt,0,10);
+  const airOK=S.air.p>=5.5,airCrit=S.air.p<4;q.airP=S.air.p;
+  const lf=clamp(0.3+0.25*nBWu0+(9.5-S.air.p)*0.15,0.2,1);
+  G.CMP.forEach(o=>{o.qNow=0;o.kwNow=o.run?o.kw*(0.4+0.55*lf):0;o.eta=0;o.hyd=0;o.spd=o.run?100:0;});
+  /* racks OI: selección según consigna (N racks) y máquina de estados */
+  if(remPct>99)S.roHold=true;else if(remPct<92)S.roHold=false;
+  const nSerU0=UF.filter(u=>u.state==='SERV').length;
+  const Nsel=blk?0:pl.N,isOn=r=>r.state==='RUN'||r.state==='START';
+  const manOn=RO.filter(r=>inPh(r)&&r.mode==='MAN'&&isOn(r)).length;
+  RO.forEach(r=>{r.want=false;});
+  RO.filter(r=>inPh(r)&&!r.fault&&r.mode==='AUTO'&&r.state!=='CIP'&&r.state!=='FLUSH'&&r.state!=='TRIP').sort((a,b)=>((isOn(b)?1:0)-(isOn(a)?1:0))||(a.idx-b.idx)).forEach((r,i)=>{r.want=i<Math.max(0,Nsel-manOn);});
+  RO.forEach((r,i)=>{
+    const hp=G.HP[i],bs=G.BST[i];
+    if(!inPh(r)){r.state='OFF';hp.run=false;bs.run=false;return;}
+    r.timer+=dt;
+    if(blk){if(r.state!=='TRIP')r.state='OFF';hp.run=false;bs.run=false;return;}
+    if(r.state==='RUN'||r.state==='START'){
+      if(rejPct>95)rtrip(r,'LAHH 36221 · nivel muy alto cámara de rechazo');
+      else if(r.P>1.10*r.Pexp&&r.P>0)rtrip(r,'PSH 34031 · presión de alimentación > 110 % de la esperada');
+      else if(r.state==='RUN'&&r.timer>300&&r.qp>1&&r.P<0.8*r.Pexp)rtrip(r,'PSL 34031 · presión de alimentación 20 % bajo la esperada');
+      else if(hp.fault||bs.fault)rtrip(r,'Falla bomba AP / booster');
+    }
+    if(r.state==='OFF'&&r.mode==='AUTO'&&r.want&&!r.fault&&!S.roHold&&nSerU0>=2&&rejPct<85&&!hp.fault&&!bs.fault){r.state='START';r.timer=0;}
+    else if(r.state==='START'&&r.timer>=120){r.state='RUN';r.timer=0;}
+    else if(r.state==='RUN'&&S.roHold&&r.mode==='AUTO'){r.state='OFF';logEv('SEC',r.id+' · standby por nivel alto en estanque remineralizado','man');}
+    else if((r.state==='RUN'||r.state==='START')&&r.mode==='AUTO'&&!r.want){r.state='FLUSH';r.timer=0;logEv('SEC',r.id+' · parada ordenada por consigna (flushing)','man');}
+    else if(r.state==='FLUSH'&&r.timer>=600){r.state='OFF';}
+    else if(r.state==='CIP'){
+      if(r.timer>=3600&&!r.c1){r.c1=true;neuAdd(120,3.2);}
+      if(r.timer>=7200){neuAdd(100,11.6);r.f=0.04;r.state='OFF';r.mode='AUTO';r.c1=false;logEv('SEC',r.id+' · CIP finalizado','ok');}
+    }
+    const on=r.state==='START'||r.state==='RUN';hp.run=on;bs.run=on;
+  });
+  G.CIPR[0].run=!blk&&RO.some(r=>r.state==='FLUSH'||r.state==='CIP');
+  /* demanda de la cadena: reparto de la consigna entre los racks en marcha */
+  const runR=RO.filter(r=>r.state==='RUN'&&inPh(r)),nRun=runR.length,nStart=RO.filter(r=>r.state==='START'&&inPh(r)).length;
+  const needP=sp.cur*3.6*(1+DES.intUse);
+  const qpRack=nRun?Math.min(DES.qpRack,needP/nRun):0;
+  q.qfDem=nRun*qpRack/DES.rec;q.loadRO=qpRack/DES.qpRack;q.nRun=nRun;
+  const nAct=blk?0:Math.max(nRun+nStart,Math.ceil(sp.cur/200-0.02));q.nAct=nAct;
+  const short=blk?1:((S.roHold||holdTk<1)?0:Math.max(0,1-nRun*DES.qpRack/(sp.eff*3.6*(1+DES.intUse))));
+  q.spShort=short;sp.tShort=short>0.03?sp.tShort+dt:0;
+  /* FR (captación) */
+  FR.forEach(f=>{f.clog=clamp(f.clog+hrs*(0.02+0.03*q.turb+ev.algae*4)-(f.run?hrs*(f.clog>0.25?1.5:0.1)*(f.clog>0.05?1:0):0),0.03,1);});
+  const capFR=FR.reduce((s,f)=>s+(f.run?5264*(1-0.85*f.clog*f.clog):0),0);
+  /* selección de racks UF y prefiltros según Tabla 3-4 (N racks OI) */
+  const tabU=NUF[pl.N],tabP=NPF[pl.N];
+  UF.forEach(u=>{u.sel=false;});
+  UF.filter(u=>inPh(u)&&u.mode==='AUTO'&&u.state!=='CIP'&&!u.air).sort((a,b)=>((a.state==='OFF'?1:0)-(b.state==='OFF'?1:0))||(a.idx-b.idx)).forEach((u,i)=>{u.sel=i<tabU;});
+  PF.forEach(f=>{f.sel=false;});
+  PF.filter(f=>inPh(f)).sort((a,b)=>((a.state==='OFF'?1:0)-(b.state==='OFF'?1:0))||(a.idx-b.idx)).forEach((f,i)=>{f.sel=i<tabP;});
+  /* UF: secuencias (filtrado 55 min · BW 50 s · stand-by 66 s · CEB 1+2 cada 24 h) */
+  UF.forEach(u=>{
+    if(!inPh(u)){u.state='OFF';u.q=0;return;}
+    if(airCrit&&u.state==='SERV'){u.state='OFF';u.air=true;}
+    if(u.state==='OFF'&&u.air&&S.air.p>=6){u.state='SERV';u.air=false;u.timer=0;}
+    if(u.state==='OFF'&&u.mode==='AUTO'&&!u.air&&u.sel){u.state='SERV';u.timer=0;}
+    else if(u.state==='SERV'&&u.mode==='AUTO'&&!u.sel){u.state='OFF';}
+    u.timer+=dt;
+    if(u.state==='SERV'){u.foul=Math.min(1,u.foul+hrs*0.0015*(1+q.pfTurb*0.5)*ev.foul);}
+    else if(u.state==='BW'&&u.timer>=50){u.foul=u.irr+(u.foul-u.irr)*0.15;u.irr=Math.min(1,u.irr+0.0006);u.cycles++;u.timer=-66;u.state=(u.cycles%25===0)?'CEB':'SERV';if(u.state==='CEB')u.timer=0;u.c1=false;u.c2=false;}
+    else if(u.state==='CEB'){
+      if(u.timer>=555&&!u.c1){u.c1=true;neuAdd(15,11.5);}
+      if(u.timer>=1665&&!u.c2){u.c2=true;neuAdd(15,2.8);}
+      if(u.timer>=2220){u.foul=u.irr*0.7;u.irr*=0.85;u.state='SERV';u.timer=-66;u.c1=false;u.c2=false;logEv('SEC',u.id+' · CEB 1 + CEB 2 finalizado','ok');}
+    }else if(u.state==='CIP'){
+      if(u.timer>=3600&&!u.c1){u.c1=true;neuAdd(40,2.5);}
+      if(u.timer>=7200){neuAdd(40,11.8);u.foul=0.02;u.irr=0.02;u.state='SERV';u.mode='AUTO';u.timer=0;u.c1=false;logEv('SEC',u.id+' · CIP finalizado','ok');}
+    }
+    u.tmp=0.2+0.9*u.foul+(u.q/585-1)*0.05;
+  });
+  const trainU=u=>u.idx<9?0:1;
+  [0,1].forEach(t=>{
+    if(UF.some(u=>(u.state==='BW'||u.state==='CEB')&&trainU(u)===t))return;
+    if(!(airOK&&tk.bwU.v>35&&G.BWU.some(avail)))return;
+    const L=UF.filter(u=>u.state==='SERV'&&trainU(u)===t);
+    const due=L.filter(u=>u.force||u.timer>=3300||u.tmp>1.15).sort((a,b)=>b.timer-a.timer);
+    if(due.length&&L.length>1){const u=due[0];u.state=(u.force==='ceb')?'CEB':'BW';u.force=null;u.timer=0;u.c1=false;u.c2=false;}
+  });
+  const nSerU=UF.filter(u=>u.state==='SERV').length;
+  /* prefiltros (ΔP limpio 0,1 bar · retrolavado a 0,5 bar · 18 s · salmuera · 1 por tren) */
+  PF.forEach(f=>{
+    if(!inPh(f)){f.state='OFF';f.q=0;return;}
+    if(f.state==='OFF'&&f.sel){f.state='SERV';f.timer=0;}
+    else if(f.state==='SERV'&&!f.sel){f.state='OFF';}
+    if(f.state==='SERV'){f.timer+=dt;const fx=0.5+0.5*Math.min(1.2,f.q/DES.pfQ);f.foul=Math.min(1,f.foul+hrs*0.06*(0.5+q.turb/3)*ev.foul*Math.max(0.3,f.q/DES.pfQ));f.dp=0.1+0.7*f.foul*fx;}
+    else if(f.state==='BW'){f.timer+=dt;if(f.timer>=18){f.state=f.sel?'SERV':'OFF';f.timer=0;f.foul*=0.08;f.dp=0.1;}}
+  });
+  const trainP=f=>f.idx<12?0:1;
+  [0,1].forEach(t=>{
+    if(PF.some(f=>f.state==='BW'&&trainP(f)===t))return;
+    if(!(airOK&&tk.bwP.v>3&&G.BWP.some(avail)))return;
+    const L=PF.filter(f=>f.state==='SERV'&&trainP(f)===t);
+    const due=L.filter(f=>f.force||f.dp>0.5||f.timer>28800).sort((a,b)=>b.dp-a.dp);
+    if(due.length&&L.length>1){due[0].state='BW';due[0].timer=0;due[0].force=false;}
+  });
+  const nSerP=PF.filter(f=>f.state==='SERV').length;
+  /* caudales de la cadena */
+  const refU=nSerU>0?1000*clamp((97-100*tk.bwU.v/tk.bwU.cap)/8,0,1):0;
+  const qByp=V.byp.open?1500:0;
+  const needFilt=q.qfDem+refU,needFeed=needFilt+qByp;
+  q.needFeed=needFeed;
+  const nUFFn=needFeed>1?Math.max(nAct,Math.ceil(needFeed/(DES.uffQ*DES.uffMax)-0.02)):0;
+  manage('UFF',Math.min(nUFFn,ph+3),false);
+  G.UFF.forEach(o=>{if(o.run){if(swPct<10)trip(o,'LALL 33201 · nivel muy bajo estanque agua de mar');else if(!V.uff.open)trip(o,'PAH 33224 · válvula de descarga cerrada');}});
+  const capUF=UF.reduce((s,u)=>s+(u.state==='SERV'?DES.ufMax*(1-0.3*u.foul*u.foul):0),0);
+  const capPF=nSerP*DES.pfQ*DES.pfOver,nUFFrun=G.UFF.filter(o=>o.run).length,capPmp=nUFFrun*DES.uffQ*DES.uffMax;
+  let sc=0;
+  if(needFeed>1){sc=1;if(needFilt>1)sc=Math.min(sc,capUF/needFilt);sc=clamp(Math.min(sc,capPF/needFeed,capPmp/needFeed),0,1);}
+  q.sc=sc;q.qFeed=needFeed*sc;q.qFilt=needFilt*sc;q.qRO=q.qfDem*sc;q.refU=refU*sc;q.qByp=qByp*sc;
+  {const svU=UF.filter(u=>u.state==='SERV'),tmA=svU.length?svU.reduce((s,u)=>s+u.tmp,0)/svU.length:0.4;
+   const dpU=4.2+avgPFdp()+tmA-0.006*swPct;
+   G.UFF.forEach(o=>{if(o.run&&q.qFeed>1){o.qNow=q.qFeed/nUFFrun;pKW(o,o.qNow,dpU);}else{o.qNow=0;pOff(o);}});}
+  PF.forEach(f=>{f.q=f.state==='SERV'&&nSerP>0?(q.qFeed-q.qByp)/nSerP:0;});
+  UF.forEach(u=>{u.q=u.state==='SERV'&&nSerU>0?q.qFilt/nSerU:0;});
+  /* captación: caudal por VDF según consigna de flujo + trim ±10 % con nivel LIT-33201 (no reduce nº de bombas) */
+  const trim=clamp((55-swPct)*0.004,-0.1,0.1);q.trim=trim;
+  const qSP=needFeed*(1+trim);
+  const nIn=needFeed>1?Math.max(nAct,Math.ceil(qSP/(DES.intQ*DES.intMax)-0.02)):0;
+  manage('INT',Math.min(nIn,ph+3),swPct>97);
+  G.INT.forEach(o=>{if(o.run){if(q.hc>1)trip(o,'AAHH 32021G · hidrocarburos en captación');else if(!V.cap.open)trip(o,'PAH 32003 · válvula de descarga cerrada');}});
+  const nInt=G.INT.filter(o=>o.run).length;
+  q.qIn=nInt>0?Math.min(qSP,nInt*DES.intQ*DES.intMax,capFR):0;
+  G.INT.forEach(o=>{if(o.run&&q.qIn>1){o.qNow=q.qIn/nInt;pKW(o,o.qNow,SYSCURVE.INT(q.qIn));}else{o.qNow=0;pOff(o);}});
+  tk.sw.v=clamp(tk.sw.v+(q.qIn-q.qFeed)*dt/3600,0,tk.sw.cap);
+  /* retrolavados */
+  const pfBW=PF.filter(f=>f.state==='BW').length,ufBW=UF.filter(u=>u.state==='BW').length,ufCh=UF.filter(u=>u.state==='CEB'||u.state==='CIP').length;
+  const ufCEB=UF.filter(u=>u.state==='CEB').length;
+  manage('BWP',pfBW,false);manage('BWU',ufBW+ufCEB,false);manage('CIPU',ufCh>0?1:0,false);
+  q.usePF=(pfBW>0&&tk.bwP.v>0.5)?DES.pfQ*Math.min(pfBW,G.BWP.filter(o=>o.run).length):0;
+  const nBWr=G.BWU.filter(o=>o.run).length;
+  q.useU=(ufBW>0&&tk.bwU.v>0.5)?2061*Math.min(ufBW,nBWr):0;
+  q.useC=(ufCEB>0&&tk.bwU.v>0.5)?ufCEB*1075*0.55:0;
+  /* el estanque de BW de prefiltros se mantiene lleno con salmuera de OI (rebose a cámara de rechazo) */
+  const brineAvail=RO.reduce((s,r)=>s+r.qb,0);
+  q.refP=brineAvail>20?Math.min(clamp((tk.bwP.cap-tk.bwP.v)*60,0,600)+q.usePF,brineAvail*0.5):0;
+  tk.bwP.v=clamp(tk.bwP.v+(q.refP-q.usePF)*dt/3600,0,tk.bwP.cap);
+  tk.bwU.v=clamp(tk.bwU.v+(q.refU-q.useU-q.useC)*dt/3600,0,tk.bwU.cap);
+  G.BWU.forEach(o=>{if(o.run&&nBWr){o.qNow=(2061*Math.min(ufBW,nBWr)+ufCEB*1075)/nBWr;pKW(o,Math.min(o.qNow,o.qn*1.1),PM.BWU.Hn);}else{o.qNow=0;pOff(o);}});
+  ['BWP','CIPU','NEU','CIPR'].forEach(g=>G[g].forEach(o=>{o.qNow=o.run?o.qn:0;if(o.run)pKW(o,o.qn,PM[g].Hn);else pOff(o);}));
+  q.cipFlow=G.CIPR[0].run?744:0;
+  q.qChem=ufCh*150+RO.filter(r=>r.state==='CIP').length*300;
+  /* OI */
+  let sumP=0,sumC=0,nr=0,sumQf=0,sumPe=0;q.Pmax=0;q.fmax=0;q.erdKW=0;q.hydRO=0;
+  RO.forEach((r,i)=>{
+    const hp=G.HP[i],bs=G.BST[i];
+    if(!inPh(r)){r.qp=r.qf=r.qb=0;r.P=0;r.cond=0;r.erdKW=0;hp.qNow=bs.qNow=0;pOff(hp);pOff(bs);return;}
+    const run=r.state==='RUN';
+    r.qp=run?qpRack*sc:0;r.qf=run?r.qp/DES.rec:0;r.qb=r.qf-r.qp;
+    const ld=r.qp/DES.qpRack;
+    r.Pexp=roPcalc(Math.max(ld,0.2),0.25,q.temp,env.tds);
+    r.P=run?roPcalc(ld,r.f,q.temp,env.tds):(r.state==='START'?18:0);
+    if(run){r.f=Math.min(1,r.f+hrs*0.0009*(1+q.pfTurb*0.15)*ev.foul*(r.qp/DES.qpRack));}
+    r.cond=run?260*(q.fCond/53)*(1+0.9*r.f)*(1+0.025*(q.temp-15)):0;
+    if(run){
+      hp.qNow=r.qp*729.8/723.5;bs.qNow=r.qf*884/1614.2;
+      pKW(hp,hp.qNow,r.P-4.6);pKW(bs,bs.qNow,3.0+0.017*r.P);
+      r.erdKW=r.qb*(r.P-1.5)/36*DES.erdEff;
+    }else{
+      hp.qNow=bs.qNow=0;pOff(hp);pOff(bs);r.erdKW=0;
+      if(r.state==='START'){hp.kwNow=300;bs.kwNow=60;}
+    }
+    if(run){nr++;sumP+=r.P;sumPe+=r.Pexp;sumC+=r.cond;sumQf+=r.qf;q.Pmax=Math.max(q.Pmax,r.P);q.erdKW+=r.erdKW;q.hydRO+=r.qf*r.P/36;}
+    if(r.ph<=ph)q.fmax=Math.max(q.fmax,r.f);
+  });
+  q.qProd=RO.reduce((s,r)=>s+r.qp,0);q.qBrine=RO.reduce((s,r)=>s+r.qb,0);
+  q.P=nr?sumP/nr:0;q.Pexp=nr?sumPe/nr:0;q.cPerm=nr?sumC/nr:0;q.rec=sumQf>0?q.qProd/sumQf:0;
+  const sv=UF.filter(u=>u.state==='SERV');q.tmp=sv.length?sv.reduce((s,u)=>s+u.tmp,0)/sv.length:0;
+  q.ufEff=(q.qFeed-q.qByp)>1?q.qRO/(q.qFeed-q.qByp):0;
+  /* neutralización */
+  const nu=tk.neu;nu.pH+=(7.5-nu.pH)*(1-Math.exp(-dt/400));nu.bad=(nu.v>20&&(nu.pH<5.5||nu.pH>9))?(nu.bad||0)+dt:0;
+  manage('NEU',(nu.v>5&&nu.pH>=6.5&&nu.pH<=8.5)?1:0,false);
+  q.qNeu=G.NEU.some(o=>o.run)?585:0;
+  nu.v=clamp(nu.v-q.qNeu*dt/3600,0,nu.cap);
+  /* cámara de rechazo → conducción única → cámara de carga (costa) → emisario submarino y difusores */
+  const qFlush=RO.filter(r=>r.state==='FLUSH').length*300;
+  const rej=tk.rej,cc=tk.cc;
+  q.qRejIn=Math.max(0,q.qBrine-q.refP+q.usePF)+q.useU+q.useC+q.qByp+qFlush+q.qNeu;
+  q.qRejOut=18000*(rej.v/rej.cap)*(V.emi.open?1:0)*(1-cc.v/cc.cap);
+  rej.v=clamp(rej.v+(q.qRejIn-q.qRejOut)*dt/3600,0,rej.cap);
+  q.qEmi=Math.min(16000*Math.sqrt(Math.max(0,cc.v/cc.cap))*(ev.emiBlock?0.12:1),q.qRejOut+cc.v/(dt/3600));
+  cc.v=clamp(cc.v+(q.qRejOut-q.qEmi)*dt/3600,0,cc.cap);
+  /* post-tratamiento y distribución (entrega controlada a la consigna en L/s) */
+  const delLs=sp.dLs==null?sp.cur:sp.dLs,delW=delLs*3.6;q.delSP=delLs;
+  manage('PEAP',remPct>3?Math.ceil(delW/720-0.05):0,false);
+  G.PEAP.forEach(o=>{if(o.run){if(!V.peap.open)trip(o,'PAH 353024 · válvula de entrega cerrada');else if(remPct<2)trip(o,'LSLL · nivel mínimo estanque');}});
+  const nP=G.PEAP.filter(o=>o.run).length;
+  q.qDel=Math.min(delW,nP*720)*(tk.rem.v>1?1:0);
+  G.PEAP.forEach(o=>{if(o.run&&nP&&q.qDel>1){o.qNow=q.qDel/nP;pKW(o,o.qNow,SYSCURVE.PEAP(q.qDel));}else{o.qNow=0;pOff(o);}});
+  tk.rem.v=clamp(tk.rem.v+(q.qProd/(1+DES.intUse)-q.qDel)*dt/3600,0,tk.rem.cap);
+  CC.forEach(c=>{c.dp=0.2+0.1*(q.qProd/4320);});
+  q.pHperm=5.9;q.pHrem=ev.co2?9.6:8.15+0.04*Math.sin(S.t/900);
+  q.condRem=q.qProd>1?0.9*q.cPerm+130:0;q.cl=ev.cl?0.12:1.0+0.05*Math.sin(S.t/700);q.turbProd=0.1;
+  /* energía por equipo / sistema y acumulados */
+  const en=S.en,aux={'AUX-FR':FR.reduce((s,f)=>s+(f.run?22:0),0),'AUX-QUIM':30+60*clamp(q.qProd/4342,0,1.2),'AUX-EDIF':120,'AUX-INST':60};
+  const addE=(id,sys,kw)=>{const e=en.eq[id]||(en.eq[id]={sys:sys,kW:0,kWh:0});e.kW=kw;e.kWh+=kw*hrs;};
+  PUMPS.forEach(o=>addE(o.id,GSYS[o.grp],o.kwNow));
+  AUXE.forEach(a=>addE(a.id,a.sys,blk?0:aux[a.id]));
+  let kW=0,kWp=0,hyd=0;for(const id in en.eq)kW+=en.eq[id].kW;
+  PUMPS.forEach(o=>{kWp+=o.kwNow;hyd+=o.hyd;});
+  q.kW=kW;q.kWpumps=kWp;q.hydPumps=hyd;
+  q.sec=q.qProd>50?q.kW/q.qProd:0;q.secDel=q.qDel>50?q.kW/q.qDel:0;
+  q.secNoERD=q.qProd>50?(q.kW+q.erdKW/(PM.HP.hb*PM.HP.dr)-G.BST.reduce((s,o)=>s+o.kwNow,0))/q.qProd:0;
+  q.secMin=secMin(env.tds,q.temp,DES.rec);
+  q.recGlobal=q.qIn>50?q.qDel/q.qIn:0;
+  PUMPS.forEach(o=>{if(o.run)o.hrs+=hrs;});
+  S.tot.prod+=q.qProd*hrs;S.tot.del+=q.qDel*hrs;S.tot.kwh+=q.kW*hrs;
+  q.swPct=100*tk.sw.v/tk.sw.cap;q.remPct=100*tk.rem.v/tk.rem.cap;q.rejPct=100*tk.rej.v/tk.rej.cap;q.ccPct=100*tk.cc.v/tk.cc.cap;
+  if(S.t-S.lastH>=60){S.lastH=S.t;S.hist.push([S.t].concat(TV.map(v=>+(+v.f(q)||0).toFixed(3))));if(S.hist.length>1440)S.hist.shift();}
+  evalAlarms();
+}
+
+function reset(ph){
+  S.phase=ph;S.t=0;S.t0=Date.UTC(2026,9,7,8,0,0);S.lastH=0;
+  S.env={temp:15,turb:3,tds:38300};
+  const mx=200*(ph+3);S.sp={Ls:mx,cur:mx,eff:mx,N:ph+3,adj:false,ramp:20,dLs:null,tShort:0};
+  S.ev={blackout:false,algae:0,hc:false,co2:false,cl:false,airFail:false,emiBlock:false,foul:1};
+  S.tk={sw:{v:3600,cap:6000},bwP:{v:30,cap:32},bwU:{v:430,cap:450},rem:{v:5200,cap:8000},rej:{v:80,cap:252},neu:{v:8,cap:196,pH:7.4},cc:{v:17,cap:120}};
+  S.air={p:9.5};S.roHold=false;S.q={};S.hist=[];S.log=[];S.tot={prod:0,del:0,kwh:0};S.en={eq:{}};
+  for(const k in A)delete A[k];
+  PUMPS.forEach(o=>{o.run=false;o.mode='AUTO';o.fault=false;o.trip='';o.blk=false;o.qNow=0;o.kwNow=0;o.spd=0;o.eta=0;o.hyd=0;o.dpNow=0;});
+  for(const k in V)V[k].open=V[k].def;
+  FR.forEach(f=>{f.run=true;f.clog=0.08;});
+  PF.forEach((f,i)=>{f.state='SERV';f.timer=(i*1200)%20000;f.foul=0.1+((i*7)%10)/40;f.dp=0.3;f.q=0;f.force=false;f.sel=true;});
+  UF.forEach((u,i)=>{u.state='SERV';u.mode='AUTO';u.timer=(i*190)%3300;u.foul=0.06+((i*5)%9)/60;u.irr=0.03;u.tmp=0.3;u.q=0;u.cycles=(i*3)%25;u.force=null;u.air=false;u.c1=false;u.c2=false;u.sel=true;});
+  RO.forEach((r,i)=>{r.state=r.ph<=ph?'RUN':'OFF';r.mode='AUTO';r.fault=false;r.trip='';r.f=0.08+i*0.015;r.P=0;r.Pexp=55;r.qp=0;r.qf=0;r.qb=0;r.cond=0;r.timer=0;r.c1=false;r.want=true;r.erdKW=0;});
+  for(let i=0;i<24;i++)step(5);
+  S.t=0;S.lastH=0;S.hist=[];S.log=[];S.tot={prod:0,del:0,kwh:0};S.en={eq:{}};
+  for(const k in A)delete A[k];
+  logEv('SISTEMA','Planta inicializada · Fase '+ph+' ('+(ph+3)+' racks / '+mx+' L/s; captación y alimentación UF '+(ph+3)+'+1)','ok');
+}
+
+function op(id,a){
+  const o=EQ[id];if(!o)return;
+  const L=x=>logEv('OPER',o.id+' → '+x,'man');
+  if(o.kind==='pump'){
+    if(a==='start'){if(o.fault||o.blk||o.ph>S.phase){logEv('OPER',o.id+' no disponible','bad');return;}o.mode='MAN';o.run=true;L('MARCHA (MAN)');}
+    else if(a==='stop'){o.mode='MAN';o.run=false;L('PARADA (MAN)');}
+    else if(a==='auto'){o.mode='AUTO';L('AUTO');}
+    else if(a==='reset'){o.fault=false;o.trip='';L('RESET de disparo');}
+  }else if(o.kind==='valve'){
+    if(a==='open'){o.open=true;L('ABRIR');}else if(a==='close'){o.open=false;L('CERRAR');}
+  }else if(o.kind==='ro'){
+    if(o.ph>S.phase)return;
+    if(a==='start'){if(o.fault)return;o.mode='MAN';o.state='START';o.timer=0;L('ARRANQUE');}
+    else if(a==='stop'){o.mode='MAN';if(o.state==='RUN'||o.state==='START'){o.state='FLUSH';o.timer=0;}L('PARADA con flushing');}
+    else if(a==='auto'){o.mode='AUTO';L('AUTO');}
+    else if(a==='cip'){if(o.fault)return;o.state='CIP';o.mode='MAN';o.timer=0;o.c1=false;L('CIP iniciado');}
+    else if(a==='reset'){o.fault=false;o.trip='';if(o.state==='TRIP')o.state='OFF';L('RESET de disparo');}
+  }else if(o.kind==='uf'){
+    if(o.ph>S.phase)return;
+    if(a==='bw'&&o.state==='SERV'){o.force='bw';L('BW forzado');}
+    else if(a==='ceb'&&o.state==='SERV'){o.force='ceb';L('CEB forzado');}
+    else if(a==='cip'&&(o.state==='SERV'||o.state==='OFF')){o.state='CIP';o.mode='MAN';o.timer=0;o.c1=false;L('CIP iniciado');}
+    else if(a==='out'){o.mode='MAN';if(o.state==='SERV')o.state='OFF';L('FUERA DE SERVICIO');}
+    else if(a==='in'){o.mode='AUTO';L('EN SERVICIO (AUTO)');}
+  }else if(o.kind==='pf'){
+    if(a==='bw'&&o.state==='SERV'){o.force=true;L('BW forzado');}
+  }
+}
+/* consigna de producción de planta (L/s): entradas protegidas al rango de diseño */
+function setSP(v){
+  const mx=200*(S.phase+3);S.sp.Ls=clamp(+v||200,200,mx);const p=plan(S.sp.Ls,S.phase);
+  logEv('OPER','Consigna de producción → '+fmtLs(S.sp.Ls)+' L/s'+(p.adj?' (zona no operable: se ajusta a '+fmtLs(p.sp)+' L/s con '+p.N+' racks)':' · '+p.N+' rack(s) a '+Math.round(p.load*100)+' %'),'man');
+}
+function fmtLs(x){return String(Math.round(x));}
+function setRamp(v){S.sp.ramp=clamp(+v||20,2,100);logEv('OPER','Rampa de consigna → '+S.sp.ramp+' L/s/min','man');}
+function setDem(v){S.sp.dLs=(v==null)?null:clamp(+v,0,1200);logEv('OPER','Entrega a cliente → '+(S.sp.dLs==null?'seguir producción':Math.round(S.sp.dLs)+' L/s'),'man');}
+function inject(k,v){
+  const ev=S.ev;
+  if(k==='algae')ev.algae=v?1:0;else if(k==='foul')ev.foul=v?10:1;else ev[k]=!!v;
+  logEv('ESCEN','Escenario '+k+': '+(v?'ACTIVADO':'desactivado'),v?'bad':'ok');
+}
+function tripRandom(grp){
+  const L=G[grp].filter(o=>o.run);if(!L.length){logEv('ESCEN','Sin bombas en servicio en '+grp,'');return;}
+  const o=L[Math.floor(Math.random()*L.length)];o.run=false;o.fault=true;o.trip='Falla de motor (simulada)';logEv('DISPARO',o.id+' · '+o.trip,'bad');
+}
+function ackAll(){for(const k in A)if(A[k].on)A[k].ack=true;}
+function resetTrips(){PUMPS.forEach(o=>{if(o.fault){o.fault=false;o.trip='';}});RO.forEach(r=>{if(r.fault){r.fault=false;r.trip='';if(r.state==='TRIP')r.state='OFF';}});logEv('OPER','Reset general de disparos','man');}
+/*==SIM_END==*/
+
+/* ================== UI ================== */
+const $=s=>document.querySelector(s),$$=s=>Array.prototype.slice.call(document.querySelectorAll(s));
+const NS='http://www.w3.org/2000/svg';
+const svg=$('#pid'),gBg=$('#bg'),gP=$('#pipes'),gE=$('#eqs'),stage=$('#stage');
+function E(tag,a,p,txt){const e=document.createElementNS(NS,tag);if(a)for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);if(txt!=null)e.textContent=txt;return e;}
+const fmt=(v,d)=>isFinite(v)?Number(v).toLocaleString('es-CL',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}):'—';
+const C={ok:'#2fd27a',stop:'#5e6c7b',bad:'#ff4b4b',warn:'#f5b83d',man:'#3c6fa3',seq:'#8b5cf6',off:'#27323f',cip:'#d97706'};
+const FL={RSW:'#2f8fe0',FTW:'#4fc3f7',UFW:'#22d3c5',PMW:'#7dd3c0',RMW:'#8fd45f',PWR:'#3b82f6',BRN:'#b9854a',CWC:'#e0a030',SEA:'#94a3b8',DRN:'#a8a29e'};
+const UPD=[];
+const Q=k=>()=>S.q[k]||0;
+const inPh=o=>o.ph<=S.phase;
+function T(x,y,txt,cls,p,anchor){return E('text',{x:x,y:y,class:cls||'tg','text-anchor':anchor||'start'},p||gE,txt);}
+function P(f,pts,fn,w){
+  w=w||4;const d='M'+pts.map(p=>p[0]+' '+p[1]).join(' L');
+  E('path',{d:d,class:'pipe',stroke:'#16212d','stroke-width':w+3},gP);
+  const base=E('path',{d:d,class:'pipe',stroke:FL[f],'stroke-width':w,'stroke-opacity':.4},gP);
+  const fl=E('path',{d:d,class:'flow','stroke-width':Math.max(1.6,w*0.45)},gP);let last='';
+  UPD.push(()=>{const v=fn?fn():1,on=v>1;fl.style.display=on?'':'none';base.setAttribute('stroke-opacity',on?0.95:0.35);
+    if(on){const sp=(1.6-Math.min(1,v/9000)*1.2).toFixed(1);if(sp!==last){fl.style.animationDuration=sp+'s';last=sp;}}});
+}
+let selId=null,moved=false;
+function slaveRack(o){if(o.kind!=='pump')return null;if(o.grp==='HP')return RO[G.HP.indexOf(o)];if(o.grp==='BST')return RO[G.BST.indexOf(o)];return null;}
+function eqG(o,x,y){
+  const g=E('g',{class:'eq',transform:'translate('+x+' '+y+')'},gE);
+  E('title',null,g,o.id+' · '+(o.name||''));
+  g.addEventListener('click',()=>{if(moved)return;select((slaveRack(o)||o).id);});
+  UPD.push(()=>{g.classList.toggle('sel',selId===(slaveRack(o)||o).id);});
+  return g;
+}
+function pumpCol(o){if(!inPh(o))return C.off;if(o.fault)return C.bad;if(o.blk)return '#6b4a1f';if(o.run)return C.ok;return o.mode==='MAN'?C.man:C.stop;}
+function pumpSym(o,x,y,lab,slave){
+  const g=eqG(o,x,y),r=13;
+  const c=E('circle',{r:r,class:'hl',stroke:'#0b1017','stroke-width':1.5},g);
+  E('path',{d:'M-6 -7L8 0L-6 7Z',fill:'#0b1017'},g);
+  const l=lab==='l',t1=T(l?-r-3:r+3,-1,o.id.replace(/^\d+-/,''),'tg',g,l?'end':'start'),t2=T(l?-r-3:r+3,9,'', 'sub',g,l?'end':'start');
+  UPD.push(()=>{c.setAttribute('fill',pumpCol(o));g.style.opacity=inPh(o)?1:.3;t2.textContent=o.run?fmt(o.qNow)+(slave?'':' m³/h'):'';c.setAttribute('stroke',o.fault?'#ff9a9a':'#0b1017');g.classList.toggle('alm',o.fault&&inPh(o));});
+  return g;
+}
+function valveSym(o,x,y,vert){
+  const g=eqG(o,x,y);
+  const pl=E('polygon',{points:'-10,-8 10,8 10,-8 -10,8',class:'hl',stroke:'#0b1017','stroke-width':1.5},g);
+  if(vert)g.setAttribute('transform','translate('+x+' '+y+') rotate(90)');
+  const tx=T(0,vert?-14:-14,o.id,'tg',g,'middle');if(vert)tx.setAttribute('transform','rotate(-90) translate(0 0)');
+  UPD.push(()=>pl.setAttribute('fill',o.open?C.ok:C.bad));
+}
+function tankSym(o,x,y,w,h,opt){
+  opt=opt||{};const g=eqG(o,x,y);
+  E('rect',{x:0,y:0,width:w,height:h,rx:5,fill:'#0c141d',class:'hl',stroke:'#7f95ab','stroke-width':1.5},g);
+  const lv=E('rect',{x:2,y:h-2,width:w-4,height:0,rx:3,fill:opt.col||'#2f8fe0','fill-opacity':.6},g);
+  T(w/2,-6,o.id,'nm',g,'middle');
+  const pt=T(w/2,h/2+4,'','big',g,'middle'),sb=T(w/2,h/2+18,'','sub',g,'middle');
+  if(opt.static){lv.setAttribute('height',h*(opt.static)-2);lv.setAttribute('y',h-h*opt.static);pt.textContent=opt.cap||'';return g;}
+  UPD.push(()=>{const t=S.tk[o.key],f=clamp(t.v/t.cap,0,1);lv.setAttribute('height',Math.max(0,(h-4)*f));lv.setAttribute('y',h-2-(h-4)*f);pt.textContent=fmt(f*100,0)+' %';sb.textContent=fmt(t.v)+' / '+fmt(t.cap)+' m³'+(o.key==='neu'?' · pH '+fmt(t.pH,1):'');});
+  return g;
+}
+function inst(tag,x,y,fn,u,d,al){
+  const p=tag.split(' '),g=E('g',{transform:'translate('+x+' '+y+')'},gE);
+  E('title',null,g,tag);
+  E('circle',{r:11,fill:'#0e1620',stroke:'#7f95ab','stroke-width':1.2},g);
+  E('line',{x1:-11,x2:11,y1:0,y2:0,stroke:'#7f95ab','stroke-width':.8},g);
+  T(0,-2,p[0],'it',g,'middle');T(0,8,p[1]||'','it',g,'middle').setAttribute('font-size','6');
+  const v=T(15,4,'–','iv',g);
+  UPD.push(()=>{const val=fn(),bad=al&&al(val);v.textContent=fmt(val,d)+(u?' '+u:'');v.style.fill=bad?C.bad:'#7ee0a8';g.classList.toggle('alm',!!bad);});
+}
+const stCol={SERV:'#1f8f5b',RUN:'#1f8f5b',BW:C.seq,CEB:C.cip,CIP:C.cip,OFF:'#475569',TRIP:C.bad,START:'#b58900',FLUSH:C.seq};
+function ufSym(o,x,y,i){
+  const g=eqG(o,x,y);
+  E('rect',{width:56,height:110,rx:7,fill:'#0c141d',class:'hl',stroke:'#7f95ab','stroke-width':1.3},g);
+  const caps=[0,1,2].map(k=>E('rect',{x:7+k*15,y:14,width:11,height:66,rx:5.5,fill:'#1f8f5b'},g));
+  const fb=E('rect',{x:6,y:84,width:44,height:5,fill:'#f5b83d',rx:2},g);
+  E('rect',{x:6,y:84,width:44,height:5,fill:'none',stroke:'#334558','stroke-width':.6},g);
+  T(28,-3,'UF-'+String(i+1).padStart(2,'0'),'tg',g,'middle');
+  const st=T(28,101,'','sub',g,'middle'),tm=T(28,10,'','sub',g,'middle');
+  UPD.push(()=>{const c=stCol[o.state]||C.stop;caps.forEach(e=>e.setAttribute('fill',c));g.style.opacity=inPh(o)?1:.28;fb.setAttribute('width',Math.max(1,44*o.foul));tm.textContent=o.state==='SERV'?fmt(o.tmp,2)+' bar':'';st.textContent=o.state;});
+}
+function pfSym(o,x,y){
+  const g=eqG(o,x,y);
+  const r=E('rect',{width:30,height:46,rx:6,class:'hl',stroke:'#0b1017','stroke-width':1.2,fill:'#1f8f5b'},g);
+  const lv=E('rect',{x:3,y:40,width:24,height:3,fill:'#0b1017','fill-opacity':.55},g);
+  UPD.push(()=>{g.style.opacity=inPh(o)?1:.25;if(o.state==='BW')r.setAttribute('fill',C.seq);else if(o.state==='SERV'){const k=clamp((o.dp-0.2)/0.7,0,1);r.setAttribute('fill','hsl('+(145-110*k)+' 55% 32%)');}else r.setAttribute('fill','#475569');lv.setAttribute('width',Math.max(1,24*clamp(o.dp/1.0,0,1)));});
+}
+function roSym(r,x,y,i){
+  const g=eqG(r,x,y);
+  const bodies=[];
+  E('rect',{x:0,y:-15,width:170,height:30,rx:8,fill:'#0c141d',class:'hl',stroke:'#7f95ab','stroke-width':1.3},g);
+  for(let k=0;k<8;k++)bodies.push(E('rect',{x:4+k*20.5,y:-11,width:17,height:22,rx:3,fill:'#1f8f5b'},g));
+  T(0,-19,r.id.replace(/^\d+-/,'')+' · '+r.erd.replace(/^\d+-/,''),'tg',g);
+  const tx=T(85,4,'','nm',g,'middle');tx.style.fill='#f4fbff';
+  UPD.push(()=>{const c=stCol[r.state]||C.stop;bodies.forEach(e=>e.setAttribute('fill',c));g.style.opacity=inPh(r)?1:.28;tx.textContent=r.state==='RUN'?fmt(r.P,1)+' bar · '+fmt(r.qp)+' m³/h':r.state;g.classList.toggle('alm',r.fault&&inPh(r));});
+}
+function ccSym(o,x,y,i){
+  const g=eqG(o,x,y);
+  E('rect',{width:24,height:90,rx:9,class:'hl',stroke:'#7f95ab','stroke-width':1.2,fill:'#8a6d3b'},g);
+  E('rect',{x:3,y:30,width:18,height:56,rx:5,fill:'#cbb27a','fill-opacity':.55},g);
+  T(12,-4,'CC-'+(i+1),'sub',g,'middle');
+}
+function frSym(o,x,y,i){
+  const g=eqG(o,x,y);
+  E('rect',{x:-70,y:-22,width:32,height:44,rx:3,fill:'#0c141d',stroke:'#7f95ab','stroke-width':1.2},g);
+  for(let k=0;k<5;k++)E('line',{x1:-66+k*6,x2:-66+k*6,y1:-18,y2:18,stroke:'#586d83'},g);
+  T(-54,-26,'RM-'+(i+1),'sub',g,'middle');
+  const c=E('circle',{r:23,class:'hl',stroke:'#7f95ab','stroke-width':1.3,fill:'#1f8f5b'},g);
+  E('circle',{r:12,fill:'#0b1017'},g);E('path',{d:'M0 -12L12 0L0 12L-12 0Z',fill:'none',stroke:'#7f95ab','stroke-width':.8},g);
+  T(0,-28,'FR-'+(i+1),'sub',g,'middle');const tx=T(0,37,'','sub',g,'middle');
+  UPD.push(()=>{c.setAttribute('fill',o.clog>0.7?C.bad:o.clog>0.4?C.warn:C.ok);tx.textContent='obstr. '+fmt(o.clog*100)+' %';});
+}
+function linkBox(x,y,w,h,title,fns,view){
+  const g=E('g',{transform:'translate('+x+' '+y+')',class:'eq'},gE);E('title',null,g,'Abrir pantalla: '+title);
+  E('rect',{width:w,height:h,rx:6,fill:'#0f2438',stroke:'#4aa8ff','stroke-width':1.3,class:'hl'},g);
+  T(8,14,title,'nm',g);const ls=fns.map((f,i)=>T(8,32+i*16,'','iv',g));
+  g.addEventListener('click',()=>{if(!moved)showView(view);});
+  UPD.push(()=>fns.forEach((f,i)=>{ls[i].textContent=f();}));
+}
+function box(x,y,w,h,txt,sub){E('rect',{x:x,y:y,width:w,height:h,rx:4,fill:'#0c141d',stroke:'#586d83','stroke-width':1.2},gE);if(txt)T(x+w/2,y+h/2+3,txt,'sub',gE,'middle');if(sub)T(x+w/2,y-4,sub,'tg',gE,'middle');}
+
+/* ----- zonas ----- */
+const ZONES=[
+ ['CAPTACIÓN','P&ID 0002 / 0003',20,90,690,660],['PRETRATAMIENTO','P&ID 0020 / 0004',720,90,790,660],['ULTRAFILTRACIÓN','P&ID 0005 / 0014',1520,90,500,660],
+ ['ÓSMOSIS INVERSA','P&ID 0006 / 0015',2030,90,600,660],['POST-TRATAMIENTO','P&ID 0007',2640,90,320,660],['DISTRIBUCIÓN','P&ID 0018 / 0019',2970,90,310,660],
+ ['ANALIZADORES · AIRE COMPRIMIDO','P&ID 0003 / 0016',20,770,690,600],['RETROLAVADO PREFILTROS','P&ID 0010',720,770,790,600],['RETROLAVADO / CIP UF','P&ID 0011 / 0012',1520,770,500,600],
+ ['CIP ÓSMOSIS INVERSA','P&ID 0013',2030,770,600,600],['NEUTRALIZACIÓN · RECHAZO · EMISARIO','P&ID 0008 / 0009',2640,770,640,600]
+];
+function drawBg(){
+  E('rect',{x:0,y:0,width:3300,height:1480,fill:'#0a1017'},gBg);
+  T(24,52,'PLANTA DESALADORA COQUIMBO · 1.200 L/s (Fase 3) · ESQUEMA DE PROCESO UNIFICADO','zt',gBg).setAttribute('style','font-size:22px;fill:#7da2c7');
+  T(24,74,'Fuente: 19 P&ID 16059-ILF-00-BS-HP-PID-0002…0023 (Rev. 0, 2023) · Aguas del Valle S.A. · Contrato CW2246019','zs',gBg);
+  ZONES.forEach(z=>{E('rect',{x:z[2],y:z[3],width:z[4],height:z[5],rx:10,fill:'#0d1620',stroke:'#1f2d3d','stroke-width':1.5},gBg);T(z[2]+14,z[3]+24,z[0],'zt',gBg);T(z[2]+z[4]-12,z[3]+22,z[1],'zs',gBg,'end');});
+}
+function buildMain(){
+  /* ---------- Z1 CAPTACIÓN ---------- */
+  E('rect',{x:30,y:140,width:60,height:605,fill:'#0b3556',opacity:.8,rx:4},gE);T(60,365,'OCÉANO','sub',gE,'middle');T(60,378,'PACÍFICO','sub',gE,'middle');
+  /* emisario submarino y difusores, paralelos a la captación (OPE §1 / CRI §1) */
+  tankSym(EQ['CAM-CARGA'],200,645,110,100,{col:'#b9854a'});
+  P('BRN',[[715,700],[310,700]],Q('qRejOut'),7);
+  P('BRN',[[200,700],[34,700]],Q('qEmi'),7);
+  [46,62,78].forEach(x=>P('BRN',[[x,700],[x,672]],Q('qEmi'),2.5));
+  T(60,738,'DIFUSORES','sub',gE,'middle');T(60,664,'EMISARIO','sub',gE,'middle');
+  T(505,692,'CONDUCCIÓN ÚNICA DE RECHAZO desde cámara de rechazo (planta) →','sub',gE,'middle');
+  T(145,692,'emisario submarino','sub',gE,'middle');
+  inst('FIT EMI',112,640,Q('qEmi'),'m³/h',0);
+  inst('LIT CC',372,655,()=>S.q.ccPct,'%',0,v=>v>85);
+  [250,358,466].forEach((cy,i)=>{
+    P('RSW',[[90,cy],[120,cy]],()=>S.q.qIn/3);
+    P('RSW',[[190,cy],[206,cy]],()=>S.q.qIn/3);
+    P('RSW',[[254,cy],[290,cy]],()=>S.q.qIn/3);
+    frSym(FR[i],254-23,cy,i);
+  });
+  E('rect',{x:290,y:180,width:60,height:356,rx:4,fill:'#0c141d',stroke:'#7f95ab','stroke-width':1.3},gE);T(320,172,'Cámara succión','sub',gE,'middle');
+  G.INT.forEach((o,i)=>{const y=190+i*56;
+    P('RSW',[[350,y],[404,y]],()=>o.qNow);P('RSW',[[434,y],[500,y]],()=>o.qNow);pumpSym(o,418,y,'l');});
+  P('RSW',[[500,190],[500,526]],Q('qIn'),6);
+  P('RSW',[[500,358],[760,358]],Q('qIn'),6);
+  valveSym(V.cap,545,358);
+  T(640,375,'Aducción agua de mar 48" (acero C.)','sub',gE,'middle');
+  inst('FIT 32018',640,318,Q('qIn'),'m³/h',0);
+  inst('PIT 32017',445,590,()=>S.q.qIn>1?(V.cap.open?16.2:24):0,'bar',1,v=>v>20);
+  /* ---------- Z2 PRETRATAMIENTO ---------- */
+  tankSym(EQ['1332-TK-001'],760,230,120,256);
+  P('RSW',[[880,358],[915,358]],Q('qFeed'),6);P('RSW',[[915,190],[915,526]],Q('qFeed'),6);
+  inst('LIT 33201',905,560,()=>S.q.swPct,'%',0,v=>v<25||v>92);
+  G.UFF.forEach((o,i)=>{const y=190+i*56;P('RSW',[[915,y],[944,y]],()=>o.qNow);P('RSW',[[976,y],[1040,y]],()=>o.qNow);pumpSym(o,960,y,'r');});
+  P('RSW',[[1040,190],[1040,526]],Q('qFeed'),6);P('RSW',[[1040,358],[1182,358]],Q('qFeed'),6);
+  valveSym(V.uff,1075,358);
+  box(1112,344,50,28,'MX-001','Mezclador 1334-MX-001');
+  inst('PIT 33224',1040,560,()=>S.q.qFeed>1?3.4:0,'bar',1);
+  inst('FIT 33223',1100,300,Q('qFeed'),'m³/h',0);
+  inst('AIT 33225A',1100,420,()=>S.q.turb*0.9,'NTU',1);
+  P('RSW',[[1060,358],[1060,745]],Q('qByp'),4);valveSym(V.byp,1060,620,true);T(1074,626,'By-pass a rechazo','sub',gE);
+  /* prefiltros */
+  T(1200,236,'PREFILTROS 1334-FL-001…024 · 16 / 20 / 24 según fase','tg',gE);
+  P('RSW',[[1186,273],[1186,397]],()=>S.q.qFeed-S.q.qByp,4);P('FTW',[[1496,273],[1496,397]],()=>S.q.qFeed-S.q.qByp,4);
+  PF.forEach((f,i)=>{const r=Math.floor(i/8),c=i%8,x=1200+c*36,y=250+r*62;pfSym(f,x,y);});
+  [273,335,397].forEach(y=>{P('RSW',[[1186,y],[1200,y]],()=>S.q.qFeed-S.q.qByp,3);P('FTW',[[1482,y],[1496,y]],()=>S.q.qFeed-S.q.qByp,3);});
+  P('FTW',[[1496,358],[1550,358]],()=>S.q.qFeed-S.q.qByp,6);
+  inst('PIT 33402',1300,470,()=>S.q.qFeed>1?1.8+0.9*(PF.reduce((s,f)=>s+f.dp,0)/24-0.4):0,'bar',1);
+  inst('PDIT 33402',1420,470,()=>{const L=PF.filter(f=>f.state==='SERV'&&inPh(f));return L.length?L.reduce((s,f)=>s+f.dp,0)/L.length:0;},'bar',2,v=>v>0.7);
+  /* ---------- Z3 UF ---------- */
+  T(1570,200,'RACKS UF 1335-UF-001…018 · 12 / 15 / 18 según fase','tg',gE);
+  P('FTW',[[1550,265],[1550,525]],()=>S.q.qFeed-S.q.qByp,5);P('UFW',[[1996,265],[1996,525]],Q('qFilt'),5);
+  P('UFW',[[1996,358],[2050,358]],Q('qRO'),6);
+  UF.forEach((u,i)=>{const r=Math.floor(i/6),c=i%6;ufSym(u,1570+c*70,210+r*130,i);});
+  [265,395,525].forEach(y=>{P('FTW',[[1550,y],[1570,y]],()=>S.q.qFeed-S.q.qByp,3);P('UFW',[[1976,y],[1996,y]],Q('qFilt'),3);});
+  inst('FIT 33608',1560,620,()=>S.q.useU+S.q.useC,'m³/h',0);
+  inst('AIT UF-T',1710,620,()=>S.q.turbUF,'NTU',2,v=>v>0.3);
+  inst('PIT 33602',1860,620,()=>S.q.qFilt>1?0.6+0.9*(S.q.tmp-0.3):0,'bar',2);
+  /* ---------- Z4 OI ---------- */
+  P('UFW',[[2050,170],[2050,630]],Q('qRO'),5);
+  inst('PIT 34002',2062,300,()=>S.q.qRO>1?2.2:0,'bar',1);
+  RO.forEach((r,i)=>{const y=170+i*92,hp=G.HP[i],bs=G.BST[i];
+    P('UFW',[[2050,y],[2082,y]],()=>r.qf*0.45);
+    P('RSW',[[2108,y],[2170,y]],()=>hp.qNow,3);
+    pumpSym(hp,2095,y,'r',true).querySelectorAll('text').forEach(t=>t.setAttribute('display','none'));
+    roSym(r,2170,y,i);
+    P('PMW',[[2340,y-11],[2600,y-11]],()=>r.qp,4);
+    P('BRN',[[2340,y+6],[2379,y+6]],()=>r.qb,3);P('BRN',[[2401,y+6],[2575,y+6]],()=>r.qb,3);
+    const eg=E('g',{transform:'translate(2390 '+(y+6)+')',class:'eq'},gE);E('title',null,eg,r.erd+' · Recuperador de energía isobárico PX-300Q (14 un.)');
+    eg.addEventListener('click',()=>{if(!moved)select(r.id);});
+    const ec=E('circle',{r:11,fill:'#0c141d',stroke:'#b9854a','stroke-width':1.4},eg);T(0,3,'PX','sub',eg,'middle');
+    UPD.push(()=>{ec.setAttribute('stroke',r.state==='RUN'?'#e0a050':'#586d83');eg.style.opacity=inPh(r)?1:.28;});
+    P('RSW',[[2390,y+17],[2390,y+34],[2311,y+34]],()=>bs.qNow,2.5);P('RSW',[[2289,y+34],[2160,y+34],[2160,y]],()=>bs.qNow,2.5);
+    pumpSym(bs,2300,y+34,'r',true).querySelectorAll('text').forEach(t=>t.setAttribute('display','none'));
+  });
+  P('PMW',[[2600,159],[2600,619]],Q('qProd'),5);P('PMW',[[2600,358],[2650,358]],Q('qProd'),6);
+  P('BRN',[[2575,176],[2575,745]],Q('qBrine'),5);
+  inst('AIT 34001A',2600,300,()=>S.q.cPerm,'µS/cm',0,v=>v>450);
+  inst('FIT 34201',2560,660,Q('qProd'),'m³/h',0);
+  T(2300,660,'Bombas AP 1340-PP-007…012 · Booster 1340-PP-013…018 · ERD 1342-RE-001…006','sub',gE,'middle');
+  /* ---------- Z5 POST ---------- */
+  box(2660,344,40,28,'MX-001','Mezclador 1351-MX-001');
+  P('PMW',[[2650,358],[2660,358]],Q('qProd'),6);P('PMW',[[2700,358],[2712,358],[2712,285],[2930,285]],Q('qProd'),5);
+  P('SEA',[[2680,300],[2680,344]],()=>S.q.qProd>1?1500:0,3);T(2680,292,'CO₂ (s/ P&ID)','sub',gE,'middle');
+  CC.forEach((c,i)=>{const x=2725+i*32;ccSym(c,x,290,i);P('PMW',[[x+12,285],[x+12,290]],Q('qProd'),2);P('RMW',[[x+12,380],[x+12,398]],Q('qProd'),2);});
+  T(2830,276,'CONTACTORES DE CALCITA 1351-CC-001…007 (4.320 m³/h)','sub',gE,'middle');
+  P('RMW',[[2737,398],[2929,398]],Q('qProd'),5);P('RMW',[[2850,398],[2850,470]],Q('qProd'),5);
+  tankSym(EQ['EST-REM'],2790,470,120,140,{col:'#8fd45f'});
+  inst('AIT 353039',2740,660,()=>S.q.pHrem,'pH',2,v=>v<7||v>8.5);
+  /* ---------- Z6 DISTRIBUCIÓN ---------- */
+  P('RMW',[[2910,560],[3000,560],[3000,190]],Q('qDel'),6);
+  G.PEAP.forEach((o,i)=>{const y=190+i*56;P('PWR',[[3000,y],[3034,y]],()=>o.qNow);P('PWR',[[3066,y],[3120,y]],()=>o.qNow);pumpSym(o,3050,y,'r');});
+  P('PWR',[[3120,190],[3120,526]],Q('qDel'),6);P('PWR',[[3120,358],[3275,358]],Q('qDel'),6);
+  valveSym(V.peap,3165,358);
+  inst('FIT 353022',3220,318,Q('qDel'),'m³/h',0);
+  T(3225,376,'PEAP → Cliente','sub',gE,'middle');
+  inst('AIT 353039',3145,440,()=>S.q.pHrem,'pH',2,v=>v<7||v>8.5);
+  inst('AIT 353040',3145,478,()=>S.q.cl,'mg/L Cl',2,v=>v<0.2);
+  inst('AIT 353041',3145,516,()=>S.q.condRem,'µS/cm',0);
+  inst('AIT 353042',3145,554,()=>S.q.turbProd,'NTU',2);
+  T(3125,424,'CALIDAD PRODUCTO','sub',gE);
+  inst('FQI 353022',3145,610,()=>S.tot.del/1000,'k m³',1);
+  linkBox(3135,128,140,76,'REGULACIÓN FIC 353022',[()=>'SP '+fmt(S.sp.Ls)+' L/s',()=>'PV '+fmt(S.q.qDel/3.6)+' L/s',()=>'Racks '+S.q.nRun+' / '+S.sp.N],'reg');
+  linkBox(3135,212,140,76,'ENERGÍA / EFICIENCIA',[()=>fmt(S.q.kW/1000,2)+' MW',()=>fmt(S.q.sec,2)+' kWh/m³',()=>'η 2ª ley '+fmt(S.q.sec>0?S.q.secMin/S.q.sec*100:0,0)+' %'],'energy');
+  /* ---------- S1 ANALIZADORES + AIRE ---------- */
+  T(50,826,'PANEL DE MUESTREO CAPTACIÓN (AIT 32021A…G, TIT 32021H)','tg',gE);
+  const an=[['AIT 32021A','Cl₂ libre',()=>S.q.cl2,'ppm',2],['AIT 32021B','pH',()=>8.1,'',2],['AIT 32021C','Turbidez',()=>S.q.turb,'NTU',1,v=>v>15],['AIT 32021D','ORP',()=>650,'mV',0],['AIT 32021E','Conductividad',()=>S.q.fCond,'mS/cm',1],['AIT 32021F','Algas',()=>S.q.alga,'%',0,v=>v>40],['AIT 32021G','Hidrocarburos',()=>S.q.hc,'ppm',2,v=>v>1],['TIT 32021H','Temperatura',()=>S.q.temp,'°C',1]];
+  an.forEach((a,i)=>{const x=70+(i%2)*190,y=870+Math.floor(i/2)*48;inst(a[0],x,y,a[2],a[3],a[4],a[5]);T(x-11,y+24,a[1],'sub',gE);});
+  T(400,826,'AIRE COMPRIMIDO · 1331-CP-001/002 (1+1) · 10 barg','tg',gE);
+  G.CMP.forEach((o,i)=>{pumpSym(o,430+i*80,870,'r');P('SEA',[[430+i*80,883],[430+i*80,905]],()=>o.run?900:0,3);});
+  P('SEA',[[430,905],[640,905]],()=>S.q.airP>1?(G.CMP.some(o=>o.run)?900:100):0,4);
+  box(560,850,60,30,'SECADOR','1300-DY-001');
+  const rc=EQ['1331-TK-AIR']||mk({id:'1331-VS-007',kind:'air',name:'Receptor de aire 5 m³ (1331-VS-007) / 3 m³ (1300-VS-002)',pid:'0016',ph:1});
+  [440,540].forEach((x,i)=>{const g=eqG(rc,x,930);E('rect',{width:70,height:100,rx:10,fill:'#0c141d',class:'hl',stroke:'#7f95ab','stroke-width':1.3},g);T(35,-5,i?'VS-002 (3 m³)':'VS-007 (5 m³)','sub',g,'middle');const t=T(35,55,'','big',g,'middle');UPD.push(()=>t.textContent=fmt(S.air.p,1)+' bar');P('SEA',[[x+35,905],[x+35,930]],()=>S.q.airP>1?200:0,2);});
+  P('SEA',[[475,1030],[475,1070],[690,1070]],()=>S.q.airP>5?600:0,4);T(600,1088,'AIRE A PLANTA / CONTROL NEUMÁTICO','sub',gE,'middle');
+  inst('PIT 30020',620,950,()=>S.air.p,'bar',1,v=>v<6.5);
+  /* ---------- S2 BW PREFILTROS ---------- */
+  tankSym(EQ['1334-TK-001'],760,860,90,130,{col:'#b9854a'});
+  P('BRN',[[805,745],[805,860]],()=>S.q.refP,4);T(815,800,'salmuera de OI (llenado + rebose)','sub',gE);
+  G.BWP.forEach((o,i)=>{const y=880+i*50;P('BRN',[[850,y],[944,y]],()=>o.qNow);P('BRN',[[976,y],[1030,y]],()=>o.qNow);pumpSym(o,960,y,'r');});
+  P('BRN',[[1030,880],[1030,980]],()=>S.q.usePF,5);P('BRN',[[1030,930],[1496,930],[1496,397]],()=>S.q.usePF,5);
+  P('BRN',[[1340,420],[1340,745]],()=>S.q.usePF,4);
+  T(1340,840,'Retrolavado con salmuera de OI / drenaje a rechazo','sub',gE,'middle');
+  inst('FIT 33426',1250,900,()=>S.q.usePF,'m³/h',0);
+  const bp=T(760,1050,'','tg',gE);UPD.push(()=>{const f=PF.find(x=>x.state==='BW');bp.textContent=f?'Retrolavando '+f.id:'Sin retrolavado en curso';});
+  /* ---------- S3 BW UF + CIP UF ---------- */
+  tankSym(EQ['1336-TK-001'],1560,850,100,160,{col:'#22d3c5'});
+  G.BWU.forEach((o,i)=>{const y=870+i*60;P('UFW',[[1660,y],[1744,y]],()=>o.qNow);P('UFW',[[1776,y],[1830,y]],()=>o.qNow);pumpSym(o,1760,y,'r');});
+  P('UFW',[[1830,870],[1830,990]],()=>S.q.useU+S.q.useC,5);P('UFW',[[1830,930],[1996,930],[1996,525]],()=>S.q.useU+S.q.useC,5);
+  P('BRN',[[1760,580],[1760,745]],()=>S.q.useU+S.q.useC,4);T(1775,690,'drenaje BW UF','sub',gE);
+  const ub=T(1560,1035,'','tg',gE);UPD.push(()=>{const u=UF.find(x=>x.state==='BW'||x.state==='CEB'||x.state==='CIP');ub.textContent=u?u.id+' · '+u.state:'Sin BW/CEB/CIP en curso';});
+  T(1560,1100,'CIP / CEB UF · estanques 1336-TK-005 / 010 (13 m³ c/u) · bombas 1336-PP-017/018','sub',gE);
+  [1560,1640].forEach((x,i)=>{const o=EQ['CIPT'+i]||mk({id:i?'1336-TK-010':'1336-TK-005',kind:'tank',key:null,static:1,name:'Estanque CIP UF 13 m³',pid:'0012',ph:1});tankSym(o,x,1130,64,90,{static:0.7,cap:'13 m³',col:'#e0a030'});});
+  G.CIPU.forEach((o,i)=>{const y=1160+i*50;P('CWC',[[1704,y],[1744,y]],()=>o.qNow,3);P('CWC',[[1776,y],[1900,y]],()=>o.qNow,3);pumpSym(o,1760,y,'r');});
+  T(1905,1180,'→ racks UF','sub',gE);
+  P('DRN',[[1700,1330],[2720,1330],[2720,990]],Q('qChem'),3);T(1710,1322,'DRENAJES QUÍMICOS → NEUTRALIZACIÓN','sub',gE);
+  /* ---------- S4 CIP OI ---------- */
+  const ct=mk({id:'1344-TK-CIP',kind:'tank',key:null,static:1,name:'Estanque CIP OI (sin tag en el set)',pid:'0013',ph:1});
+  tankSym(ct,2060,860,110,140,{static:0.7,cap:'CIP OI',col:'#e0a030'});
+  const cp=G.CIPR[0];P('CWC',[[2170,930],[2224,930]],()=>cp.qNow,4);P('CWC',[[2256,930],[2290,930]],()=>cp.qNow,4);pumpSym(cp,2240,930,'r');
+  box(2290,900,16,60,'','');box(2314,900,16,60,'','');T(2310,892,'FC-001/002','sub',gE,'middle');
+  P('CWC',[[2330,930],[2420,930],[2420,660]],Q('cipFlow'),4);T(2430,800,'→ racks OI (CIP / flushing)','sub',gE);
+  P('DRN',[[2115,1000],[2115,1330]],()=>S.q.qChem/3,3);
+  T(2060,1060,'Bomba flushing/CIP 1344-PP-001 (744 m³/h, 185 kW) · agua de servicio 1344-PP-002/003','sub',gE);
+  /* ---------- S5 NEUTRALIZACIÓN + RECHAZO ---------- */
+  tankSym(EQ['1362-TK-001'],2670,850,100,140,{col:'#e0a030'});
+  inst('AIT 36207A',2700,1030,()=>S.tk.neu.pH,'pH',1,v=>(v<6||v>9)&&S.tk.neu.v>20);
+  G.NEU.forEach((o,i)=>{const y=880+i*60;P('CWC',[[2770,y],[2834,y]],()=>o.qNow,3);P('CWC',[[2866,y],[2910,y]],()=>o.qNow,3);pumpSym(o,2850,y,'r');});
+  P('CWC',[[2910,880],[2910,940]],Q('qNeu'),4);P('CWC',[[2910,910],[2960,910]],Q('qNeu'),4);
+  P('BRN',[[760,745],[3030,745],[3030,800]],()=>S.q.qRejIn-S.q.qNeu,7);
+  T(1700,738,'COLECTOR DE RECHAZO (salmuera OI · drenajes BW · by-pass)','sub',gE,'middle');
+  tankSym(EQ['1362-TK-005'],2960,800,140,170,{col:'#b9854a'});
+  inst('LIT 36221',3040,1000,()=>S.q.rejPct,'%',0,v=>v>85||v<5);
+  P('BRN',[[3100,900],[3140,900]],Q('qRejOut'),7);
+  P('BRN',[[3175,900],[3230,900],[3230,1430],[715,1430],[715,700],[310,700]],Q('qRejOut'),7);
+  valveSym(V.emi,3158,900);inst('FIT 36222',3190,858,Q('qRejOut'),'m³/h',0);
+  T(3222,1262,'CONDUCCIÓN ÚNICA DE RECHAZO','sub',gE,'end');T(3222,1274,'→ CÁMARA DE CARGA (COSTA)','sub',gE,'end');
+  T(1700,1422,'CONDUCCIÓN ÚNICA DE RECHAZO → CÁMARA DE CARGA EN LA COSTA → EMISARIO SUBMARINO Y DIFUSORES (paralelo a la captación de agua de mar)','sub',gE,'middle');
+  T(2985,1060,'MONITOREO DESCARGA (AIT 36224A…D, TIT 36224E)','sub',gE);
+  [['AIT 36224A','pH',()=>8.0,'',1],['AIT 36224B','Turbidez',()=>S.q.turb*0.5,'NTU',1],['AIT 36224C','ORP',()=>450,'mV',0],['AIT 36224D','Cond.',()=>S.q.fCond/(1-0.45)*0.9,'mS/cm',0],['TIT 36224E','Temp.',()=>S.q.temp,'°C',1]].forEach((a,i)=>{const x=2990+(i%2)*120,y=1100+Math.floor(i/2)*44;inst(a[0],x,y,a[2],a[3],a[4]);});
+}
+/* ---------- leyenda ---------- */
+function drawLegend(){
+  const names={RSW:'Agua de mar',FTW:'Agua filtrada',UFW:'Agua ultrafiltrada',PMW:'Permeado OI',RMW:'Remineralizada',PWR:'Agua potable',BRN:'Rechazo / salmuera',CWC:'Limpieza química',SEA:'Aire comprimido',DRN:'Drenajes'};
+  $('#legend').innerHTML=Object.keys(names).map(k=>'<span><i style="background:'+FL[k]+'"></i>'+names[k]+'</span>').join('')+'<span><b style="color:#2fd27a">●</b> marcha <b style="color:#5e6c7b">●</b> parada <b style="color:#3c6fa3">●</b> MAN <b style="color:#ff4b4b">●</b> falla <b style="color:#8b5cf6">●</b> secuencia</span>';
+}
+/* ---------- zoom / pan ---------- */
+const VB={x:0,y:0,w:3300,h:1480};
+function setVB(){svg.setAttribute('viewBox',VB.x+' '+VB.y+' '+VB.w+' '+VB.h);}
+function fit(){const r=stage.getBoundingClientRect(),ar=r.width/Math.max(1,r.height);if(r.width<10)return;if(ar>3300/1480){VB.h=1480;VB.w=1480*ar;}else{VB.w=3300;VB.h=3300/ar;}VB.x=(3300-VB.w)/2;VB.y=(1480-VB.h)/2;setVB();}
+function zoomTo(x,y,w,h){const r=stage.getBoundingClientRect(),ar=r.width/Math.max(1,r.height);let W=w,H=h;if(W/H<ar)W=H*ar;else H=W/ar;VB.x=x-(W-w)/2;VB.y=y-(H-h)/2;VB.w=W;VB.h=H;setVB();}
+function zoomBy(f,cx,cy){const nw=VB.w*f,nh=VB.h*f;VB.x=cx-(cx-VB.x)*f;VB.y=cy-(cy-VB.y)*f;VB.w=nw;VB.h=nh;setVB();}
+function toSvg(ev){const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+stage.addEventListener('wheel',e=>{e.preventDefault();const p=toSvg(e);zoomBy(e.deltaY>0?1.15:1/1.15,p.x,p.y);},{passive:false});
+let drag=null;
+stage.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,vx:VB.x,vy:VB.y};moved=false;});
+window.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)moved=true;if(moved){const k=VB.w/stage.clientWidth;VB.x=drag.vx-dx*k;VB.y=drag.vy-dy*k;setVB();}});
+window.addEventListener('pointerup',()=>{drag=null;setTimeout(()=>{moved=false;},0);});
+window.addEventListener('resize',fit);
+$('#zin').onclick=()=>zoomBy(1/1.3,VB.x+VB.w/2,VB.y+VB.h/2);$('#zout').onclick=()=>zoomBy(1.3,VB.x+VB.w/2,VB.y+VB.h/2);$('#zfit').onclick=fit;
+$('#zbtns').innerHTML=ZONES.slice(0,6).map((z,i)=>'<button class="zbtn" data-z="'+i+'">'+z[0].split(' ')[0].replace('ÓSMOSIS','OI').replace('ULTRAFILTRACIÓN','UF').replace('PRETRATAMIENTO','PRETRAT.').replace('DISTRIBUCIÓN','DISTR.').replace('POST-TRATAMIENTO','POST')+'</button>').join('')+'<button class="zbtn" data-z="s">SERVICIOS</button>';
+$('#zbtns').addEventListener('click',e=>{const z=e.target.dataset.z;if(z==null)return;if(z==='s')zoomTo(20,760,3280,700);else{const q=ZONES[+z];zoomTo(q[2]-10,q[3]-10,q[4]+20,q[5]+20);}});
+/* ---------- pestañas ---------- */
+$('#tabs').addEventListener('click',e=>{const t=e.target.dataset.t;if(t)showTab(t);});
+function showTab(t){$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));if(t==='trend')drawTrend();}
+$('#almBadge').onclick=()=>showTab('alm');
+/* ---------- faceplate ---------- */
+function stateInfo(o){
+  switch(o.kind){
+    case 'pump':return o.ph>S.phase?['NO INSTALADA (fase)',C.off]:o.fault?['DISPARO',C.bad]:o.blk?['SIN ENERGÍA','#6b4a1f']:o.run?['EN MARCHA',C.ok]:o.mode==='AUTO'?['STAND-BY (AUTO)',C.stop]:['DETENIDA (MAN)',C.man];
+    case 'valve':return o.open?['ABIERTA',C.ok]:['CERRADA',C.bad];
+    case 'ro':case 'uf':case 'pf':return o.ph>S.phase?['NO INSTALADO (fase)',C.off]:[o.state,stCol[o.state]||C.stop];
+    case 'fr':return [o.run?'EN SERVICIO':'DETENIDO',o.run?C.ok:C.stop];
+    default:return ['EN LÍNEA',C.ok];
+  }
+}
+function rows(o){
+  const q=S.q;
+  switch(o.kind){
+    case 'pump':return [['Modo',o.mode],['Caudal',fmt(o.qNow)+' m³/h (nom. '+fmt(o.qn)+')'],o.vfd?['Velocidad',fmt(o.spd)+' %']:null,['Potencia',fmt(o.kwNow)+' kW (placa '+fmt(o.kw)+')'],o.eta>0?['Altura / rendimiento',fmt(o.dpNow,1)+' bar · η bomba '+fmt(o.eta*100,1)+' % · η total '+fmt(o.eta*PM[o.grp].dr*100,1)+' %']:null,(S.en&&S.en.eq[o.id])?['Energía acumulada',fmt(S.en.eq[o.id].kWh)+' kWh']:null,['Horas',fmt(o.hrs,1)+' h'],o.fault?['Causa disparo',o.trip]:null,['Instalada desde','Fase '+o.ph],['P&ID','16059-ILF-00-BS-HP-PID-'+o.pid]].filter(Boolean);
+    case 'valve':return [['Posición',o.open?'ABIERTA':'CERRADA'],['P&ID','…-PID-'+o.pid]];
+    case 'tank':{const t=S.tk[o.key];if(!t)return [['Tipo','Estanque (estático)'],['P&ID','…-PID-'+o.pid]];return [['Nivel',fmt(100*t.v/t.cap,1)+' %'],['Volumen',fmt(t.v)+' / '+fmt(t.cap)+' m³'],o.key==='neu'?['pH',fmt(t.pH,2)]:null,['P&ID','…-PID-'+o.pid]].filter(Boolean);}
+    case 'pf':return [['ΔP (retrolavado a 0,5)',fmt(o.dp,2)+' bar'],['Caudal',fmt(o.q)+' m³/h'],['Ensuciamiento',fmt(o.foul*100)+' %'],['Tiempo en servicio',fmt(o.timer/3600,1)+' h'],['Fase','Fase '+o.ph]];
+    case 'uf':return [['Modo',o.mode],['TMP',fmt(o.tmp,2)+' bar'],['Caudal',fmt(o.q)+' m³/h'],['Ensuciamiento reversible',fmt(o.foul*100,1)+' %'],['Irreversible',fmt(o.irr*100,1)+' %'],['Ciclos BW',o.cycles],['Fase','Fase '+o.ph]];
+    case 'ro':{const hp=G.HP[o.idx],bs=G.BST[o.idx];return [['Modo',o.mode],['Presión alim.',fmt(o.P,1)+' bar (esperada '+fmt(o.Pexp,1)+')'],['Carga del rack',o.state==='RUN'?fmt(o.qp/DES.qpRack*100)+' %':'—'],['Recuperación de energía (ERD)',fmt(o.erdKW)+' kW hidráulicos'],['Permeado',fmt(o.qp)+' m³/h'],['Alimentación',fmt(o.qf)+' m³/h'],['Rechazo',fmt(o.qb)+' m³/h'],['Recuperación',o.qf>0?fmt(o.qp/o.qf*100,1)+' %':'—'],['Cond. permeado',fmt(o.cond)+' µS/cm'],['Ensuciamiento',fmt(o.f*100,1)+' %'],['Bomba AP '+hp.id.replace(/^\d+-/,''),hp.run?'MARCHA · '+fmt(hp.kwNow)+' kW':'parada'],['Booster '+bs.id.replace(/^\d+-/,''),bs.run?'MARCHA · '+fmt(bs.kwNow)+' kW':'parada'],o.fault?['Causa disparo',o.trip]:null,['ERD',o.erd]].filter(Boolean);}
+    case 'fr':return [['Obstrucción',fmt(o.clog*100)+' %'],['Capacidad',fmt(5264*(1-0.85*o.clog*o.clog))+' m³/h']];
+    case 'cc':return [['ΔP',fmt(o.dp,2)+' bar'],['Recarga','Manual con maxisacos (nota 1, P&ID 0007)']];
+    default:return [['Presión aire',fmt(S.air.p,1)+' bar'],['Compresores en marcha',G.CMP.filter(x=>x.run).length+' / 2']];
+  }
+}
+function btnsFor(o){
+  const b=(a,l,c)=>'<button data-a="'+a+'" class="'+(c||'')+'">'+l+'</button>';
+  switch(o.kind){
+    case 'pump':return b('start','▶ Marcha')+b('stop','■ Parada')+b('auto','AUTO','mode')+b('reset','Reset falla');
+    case 'valve':return b('open','Abrir')+b('close','Cerrar');
+    case 'ro':return b('start','▶ Arrancar')+b('stop','■ Detener + flushing')+b('auto','AUTO','mode')+b('cip','CIP')+b('reset','Reset falla');
+    case 'uf':return b('bw','BW forzado')+b('ceb','CEB')+b('cip','CIP')+b('out','Fuera de servicio')+b('in','En servicio');
+    case 'pf':return b('bw','BW forzado');
+    default:return '';
+  }
+}
+function select(id){selId=id;const o=EQ[id];if(!o)return;showTab('face');
+  $('#p-face').innerHTML='<h3 id="fTag"></h3><div id="fNm" style="color:var(--dim);margin-bottom:6px"></div><span id="fSt" class="badge"></span><div class="btns" id="fBtn"></div><table id="fTb"></table><div id="fNote" style="margin-top:8px;color:var(--dim);font-size:11px"></div>';
+  $('#fBtn').innerHTML=btnsFor(o);faceUpd();}
+function faceUpd(){
+  const o=EQ[selId];if(!o||!$('#fTag'))return;
+  $('#fTag').textContent=o.id;$('#fNm').textContent=o.name||'';
+  const s=stateInfo(o),b=$('#fSt');b.textContent=s[0];b.style.background=s[1];b.style.color='#fff';
+  $('#fTb').innerHTML=rows(o).map(r=>'<tr><td>'+r[0]+'</td><td class="v">'+r[1]+'</td></tr>').join('');
+  $$('#fBtn button.mode').forEach(x=>x.classList.toggle('on',o.mode==='AUTO'));
+  $('#fNote').textContent=o.kind==='ro'?'Bomba AP, booster y ERD se gobiernan desde la secuencia del rack.':(o.kind==='pump'&&o.grp==='NEU'?'Arranca solo con pH 6,5–8,5.':'');
+}
+$('#p-face').addEventListener('click',e=>{const a=e.target.dataset&&e.target.dataset.a;if(a&&selId){op(selId,a);faceUpd();}});
+$('#p-face').innerHTML='<h3>Faceplate</h3><p style="color:var(--dim)">Seleccione un equipo en el esquema (bomba, válvula, estanque, rack UF/OI, prefiltro…).</p>';
+/* ---------- alarmas / eventos ---------- */
+let almSig='',logSig='';
+function simTime(t){return new Date(S.t0+t*1000).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function renderAlm(){
+  const L=Object.keys(A).map(k=>A[k]).filter(a=>a.on||!a.ack).sort((a,b)=>(b.on-a.on)||(a.p-b.p)||(b.t-a.t));
+  const sig=L.map(a=>a.id+a.on+a.ack).join('|');
+  const act=L.filter(a=>a.on),un=act.filter(a=>!a.ack).length,bd=$('#almBadge');
+  bd.textContent='Alarmas: '+act.length+(un?' ('+un+' sin reconocer)':'');bd.classList.toggle('act',act.length>0);bd.classList.toggle('flash',un>0);
+  if(sig===almSig)return;almSig=sig;
+  $('#p-alm').innerHTML='<div class="btns"><button id="ackAll">Reconocer todas</button><button id="rstAll">Reset disparos</button></div>'+(L.length?L.map(a=>'<div class="alm-item p'+a.p+(a.on?(a.ack?'':' un'):' off')+'" data-id="'+a.id+'"><b>'+a.tag+'</b><span>'+a.txt+'<br><small style="color:var(--dim)">'+simTime(a.t)+(a.on?'':' · normalizada')+'</small></span></div>').join(''):'<p style="color:var(--dim)">Sin alarmas activas.</p>');
+}
+$('#p-alm').addEventListener('click',e=>{if(e.target.id==='ackAll'){ackAll();almSig='';}else if(e.target.id==='rstAll'){resetTrips();almSig='';}else{const it=e.target.closest('.alm-item');if(it&&A[it.dataset.id]){A[it.dataset.id].ack=true;if(!A[it.dataset.id].on)delete A[it.dataset.id];almSig='';}}});
+function renderLog(){const sig=S.log.length+':'+(S.log[0]?S.log[0].t:0);if(sig===logSig)return;logSig=sig;$('#p-log').innerHTML=S.log.slice(0,200).map(l=>'<div class="logrow '+l.c+'">'+simTime(l.t)+' · '+l.k+' · '+l.x+'</div>').join('');}
+/* ---------- escenarios ---------- */
+function buildScen(){
+  const sl=(id,l,min,max,st,val,u)=>'<div class="sl"><label>'+l+'</label><output id="o_'+id+'">'+val+u+'</output><input type="range" id="s_'+id+'" min="'+min+'" max="'+max+'" step="'+st+'" value="'+val+'" style="grid-column:1/3"></div>';
+  const tg=(k,l)=>'<button data-ev="'+k+'">'+l+'</button>';
+  $('#p-scen').innerHTML='<h3>Consignas</h3><p style="color:var(--dim);font-size:11px">La consigna de producción (L/s hasta 1.200) y la demanda del cliente se regulan en la pantalla <b>Regulación Q</b>.</p><div class="btns"><button id="goReg">Abrir Regulación Q</button></div>'+
+  '<h3 style="margin-top:12px">Ambiente</h3>'+sl('temp','Temperatura agua de mar (diseño 10,9–19)',8,24,0.5,S.env.temp,' °C')+sl('turb','Turbidez base',0.5,30,0.5,S.env.turb,' NTU')+sl('tds','SDT agua de mar (diseño 38.060–38.598)',36000,40000,100,S.env.tds,' mg/L')+
+  '<h3 style="margin-top:12px">Inyección de fallas</h3><div class="tg2">'+tg('blackout','Corte de energía general')+tg('algae','Floración algal (turbidez + algas)')+tg('hc','Hidrocarburos en captación (AAHH)')+tg('co2','Falla dosificación CO₂ (pH producto)')+tg('cl','Falla cloración')+tg('airFail','Falla de compresores de aire')+tg('emiBlock','Obstrucción de emisario')+tg('foul','Ensuciamiento acelerado ×10')+'</div>'+
+  '<div class="btns"><button data-trip="INT">Disparar bomba captación</button><button data-trip="UFF">Disparar bomba alim. UF</button><button data-trip="HP">Disparar bomba AP</button><button data-trip="PEAP">Disparar bomba PEAP</button></div>'+
+  '<p style="color:var(--dim);font-size:11px">Cierre de válvulas (captación 48", descarga UF, entrega cliente, emisario) desde su faceplate: provoca disparos por PAH / LAHH en cascada.</p>'+
+  '<div class="btns"><button id="rstPlant">Reiniciar planta (fase actual)</button></div>';
+  [['temp','env'],['turb','env'],['tds','env']].forEach(p=>{const i=$('#s_'+p[0]);i.oninput=()=>{S[p[1]][p[0]]=+i.value;$('#o_'+p[0]).textContent=i.value+({temp:' °C',turb:' NTU',tds:' mg/L'}[p[0]]);};});
+}
+$('#p-scen').addEventListener('click',e=>{const t=e.target;
+  if(t.dataset.ev){const k=t.dataset.ev,on=k==='algae'?S.ev.algae===0:k==='foul'?S.ev.foul===1:!S.ev[k];inject(k,on);}
+  else if(t.dataset.trip)tripRandom(t.dataset.trip);
+  else if(t.id==='goReg')showView('reg');
+  else if(t.id==='rstPlant'){reset(S.phase);buildScen();almSig='';logSig='';}
+});
+function scenSync(){$$('#p-scen [data-ev]').forEach(b=>{const k=b.dataset.ev,on=k==='algae'?S.ev.algae>0:k==='foul'?S.ev.foul>1:!!S.ev[k];b.classList.toggle('on',on);});}
+/* ---------- KPIs ---------- */
+const KP=[['Consigna','L/s',()=>S.sp.Ls,0],['Entrega cliente','L/s',()=>S.q.qDel/3.6,0],['Captación','m³/h',()=>S.q.qIn,0],['Alim. UF','m³/h',()=>S.q.qFeed,0],['Permeado OI','m³/h',()=>S.q.qProd,0],['Recuperación OI','%',()=>S.q.rec*100,1],['Presión OI','bar',()=>S.q.P,1],['Cond. permeado','µS/cm',()=>S.q.cPerm,0],['pH producto','',()=>S.q.pHrem,2],['Potencia','MW',()=>S.q.kW/1000,2],['SEC','kWh/m³',()=>S.q.sec,2],['Nivel remin.','%',()=>S.q.remPct,0],['Emisario','m³/h',()=>S.q.qEmi,0],['Producido','k m³',()=>S.tot.prod/1000,1]];
+function buildKpi(){$('#kpis').innerHTML=KP.map((k,i)=>'<div class="kpi"><span>'+k[0]+'</span><b id="kp'+i+'">–</b></div>').join('');}
+/* ---------- tendencias ---------- */
+const PAL=['#4aa8ff','#2fd27a','#f5b83d','#ff6b6b','#b68cff','#22d3c5'];
+let TSEL=['qProd','swPct','P','cPerm'];
+function buildChips(){$('#chips').innerHTML=TV.map(v=>'<label class="'+(TSEL.indexOf(v.k)>=0?'on':'')+'" data-k="'+v.k+'">'+v.n+'</label>').join('');}
+$('#chips').addEventListener('click',e=>{const k=e.target.dataset.k;if(!k)return;const i=TSEL.indexOf(k);if(i>=0)TSEL.splice(i,1);else if(TSEL.length<6)TSEL.push(k);buildChips();drawTrend();});
+function drawTrend(){
+  if(!$('#p-trend').classList.contains('on'))return;
+  const cv=$('#cv'),ctx=cv.getContext('2d'),dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.strokeStyle='#1d2b3a';ctx.lineWidth=1;
+  for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,h*i/5);ctx.lineTo(w,h*i/5);ctx.stroke();}
+  const H=S.hist;let leg='';
+  if(H.length<2){ctx.fillStyle='#7b90a6';ctx.fillText('Acumulando datos…',10,20);}
+  else{
+    TSEL.forEach((k,si)=>{const ix=TV.findIndex(v=>v.k===k)+1,col=PAL[si%PAL.length];let mn=1e99,mx=-1e99;H.forEach(r=>{mn=Math.min(mn,r[ix]);mx=Math.max(mx,r[ix]);});if(mx-mn<1e-9){mx=mn+1;}
+      ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();H.forEach((r,i)=>{const x=i/(H.length-1)*(w-4)+2,y=h-6-(r[ix]-mn)/(mx-mn)*(h-14);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.stroke();
+      const v=TV[ix-1];leg+='<div class="legrow"><i style="background:'+col+'"></i><span style="flex:1">'+v.n+'</span><b>'+fmt(H[H.length-1][ix],v.u==='bar'||v.u==='kWh/m³'||v.u==='NTU'?2:0)+' '+v.u+'</b><small style="color:var(--dim)">['+fmt(mn,1)+'–'+fmt(mx,1)+']</small></div>';});
+    ctx.fillStyle='#7b90a6';ctx.font='10px sans-serif';ctx.fillText(simTime(H[0][0]),4,h-1);const e=simTime(H[H.length-1][0]);ctx.fillText(e,w-ctx.measureText(e).width-4,h-1);
+  }
+  $('#trLeg').innerHTML=leg+'<p style="color:var(--dim);font-size:11px">Cada serie está normalizada a su rango (mín–máx) en la ventana. Muestreo cada 60 s de simulación.</p>';
+}
+/* ---------- exportación ---------- */
+function dl(name,mime,data){const b=data instanceof Blob?data:new Blob([data],{type:mime}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function svgString(){const c=svg.cloneNode(true);c.setAttribute('viewBox','0 0 3300 1480');c.setAttribute('width','3300');c.setAttribute('height','1480');c.setAttribute('xmlns',NS);const st=document.createElementNS(NS,'style');st.textContent=$('#appcss').textContent.split('\n').filter(l=>l.indexOf('#pid')===0||l.indexOf('@keyframes')===0).join('\n');c.insertBefore(st,c.firstChild);return '<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(c);}
+const stamp=()=>new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+$('#exSvg').onclick=()=>dl('PID_unificado_desaladora_'+stamp()+'.svg','image/svg+xml',svgString());
+$('#exPng').onclick=()=>{const img=new Image(),url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgString());img.onload=()=>{const cv=document.createElement('canvas');cv.width=6600;cv.height=2960;const x=cv.getContext('2d');x.fillStyle='#0a1017';x.fillRect(0,0,6600,2960);x.drawImage(img,0,0,6600,2960);cv.toBlob(b=>dl('PID_unificado_desaladora_'+stamp()+'.png','image/png',b));};img.src=url;};
+$('#exCsv').onclick=()=>{const H=S.hist,hd=['t_sim_s'].concat(TV.map(v=>v.n+' ['+v.u+']'));dl('historiador_'+stamp()+'.csv','text/csv;charset=utf-8','\ufeff'+[hd.join(';')].concat(H.map(r=>r.join(';').replace(/\./g,','))).join('\n'));};
+$('#exJson').onclick=()=>dl('tags_'+stamp()+'.json','application/json',JSON.stringify({exportado:new Date().toISOString(),fase:S.phase,tiempo_sim_s:S.t,variables:S.q,estanques:S.tk,consignas:S.sp,escenarios:S.ev,equipos:EQ,alarmas:A},null,1));
+$('#exHtml').onclick=()=>{
+  const cl=document.documentElement.cloneNode(true);
+  ['#bg','#pipes','#eqs'].forEach(s=>{cl.querySelector(s).innerHTML='';});
+  cl.querySelectorAll('.dyn').forEach(e=>{e.innerHTML='';});
+  const old=cl.querySelector('#saved');if(old)old.remove();
+  const sc=document.createElement('script');sc.id='saved';sc.type='application/json';sc.textContent=JSON.stringify({S:S,EQ:EQ,A:A}).replace(/</g,'\\u003c');
+  cl.querySelector('body').insertBefore(sc,cl.querySelector('body script'));
+  dl('SCADA_desaladora_coquimbo_'+stamp()+'.html','text/html;charset=utf-8','<!DOCTYPE html>\n'+cl.outerHTML);
+};
+function restore(js){
+  Object.keys(js.S).forEach(k=>{S[k]=js.S[k];});
+  Object.keys(js.EQ).forEach(id=>{if(EQ[id])Object.assign(EQ[id],js.EQ[id]);});
+  for(const k in A)delete A[k];Object.assign(A,js.A||{});
+}
+/* ================== PANTALLAS: Energía · Eficiencia · Regulación Q · Cumplimiento ================== */
+let VIEW='pid';
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const setH=(id,html)=>{const e=document.getElementById(id);if(e&&e.__h!==html){e.__h=html;e.innerHTML=html;}};
+const setV=(id,txt)=>{const e=document.getElementById(id);if(e&&e.textContent!==txt)e.textContent=txt;};
+const kpi=(id,l,u)=>'<div class="kc"><span>'+l+'</span><b id="'+id+'">–</b><small>'+u+'</small><i id="'+id+'s"></i></div>';
+const SYSCOL=['#4aa8ff','#22d3c5','#b68cff','#ff7a59','#f5b83d','#e0a030','#8fd45f','#2fd27a','#b9854a','#94a3b8','#6b7f95'];
+const PLATE_AUX={'AUX-FR':66,'AUX-QUIM':90,'AUX-EDIF':120,'AUX-INST':60};
+function showView(v){
+  VIEW=v;$$('#vbtns button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('#stage').style.display=v==='pid'?'':'none';$('#views').style.display=v==='pid'?'none':'block';
+  if(v!=='pid'){buildView(v);updView();$('#views').scrollTop=0;}
+}
+$('#vbtns').addEventListener('click',e=>{const v=e.target.dataset.v;if(v)showView(v);});
+function buildView(v){
+  const el=$('#views');
+  el.innerHTML=v==='energy'?skEnergy():v==='eff'?skEff():v==='reg'?skReg():skCum();
+  if(v==='cum')renderCum();
+}
+function updView(){
+  if(VIEW==='energy')updEnergy();else if(VIEW==='eff')updEff();else if(VIEW==='reg')updReg();else if(VIEW==='cum')updCum();
+}
+/* ---------- utilidades de gráficos ---------- */
+function cvSetup(id){
+  const cv=document.getElementById(id);if(!cv||!cv.clientWidth)return null;
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);return {ctx:ctx,w:w,h:h};
+}
+function miniChart(cvId,keys,legId){
+  const c=cvSetup(cvId);if(!c)return;const ctx=c.ctx,w=c.w,h=c.h;
+  ctx.strokeStyle='#1d2b3a';ctx.lineWidth=1;for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(0,h*i/5);ctx.lineTo(w,h*i/5);ctx.stroke();}
+  const H=S.hist;let leg='';
+  if(H.length<2){ctx.fillStyle='#7b90a6';ctx.font='12px sans-serif';ctx.fillText('Acumulando datos… (muestreo cada 60 s de simulación)',10,20);}
+  else{
+    keys.forEach((k,si)=>{const ix=TV.findIndex(v=>v.k===k)+1,col=PAL[si%PAL.length];let mn=1e99,mx=-1e99;H.forEach(r=>{mn=Math.min(mn,r[ix]);mx=Math.max(mx,r[ix]);});if(mx-mn<1e-9){mx=mn+1;}
+      ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.beginPath();H.forEach((r,i)=>{const x=i/(H.length-1)*(w-4)+2,y=h-16-(r[ix]-mn)/(mx-mn)*(h-26);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.stroke();
+      const v=TV[ix-1];leg+='<div class="legrow"><i style="background:'+col+'"></i><span style="flex:1">'+v.n+'</span><b>'+fmt(H[H.length-1][ix],v.u==='bar'||v.u==='kWh/m³'?2:0)+' '+v.u+'</b><small style="color:var(--dim)">['+fmt(mn,1)+' – '+fmt(mx,1)+']</small></div>';});
+    ctx.fillStyle='#7b90a6';ctx.font='10px sans-serif';ctx.fillText(simTime(H[0][0]),4,h-3);const e=simTime(H[H.length-1][0]);ctx.fillText(e,w-ctx.measureText(e).width-4,h-3);
+  }
+  if(legId)setH(legId,leg+'<p class="note" style="color:var(--dim);font-size:11px">Cada serie se normaliza a su rango mín–máx dentro de la ventana.</p>');
+}
+function axes(ctx,x0,y0,x1,y1,xmin,xmax,ymin,ymax,xt,yt,xl,yl,xf,yf){
+  ctx.strokeStyle='#22313f';ctx.fillStyle='#8aa0b6';ctx.font='10px Consolas,monospace';ctx.lineWidth=1;
+  for(let v=ymin;v<=ymax+1e-9;v+=yt){const y=y1-(v-ymin)/(ymax-ymin)*(y1-y0);ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(yf?yf(v):v,x0-4,y+3);}
+  for(let v=xmin;v<=xmax+1e-9;v+=xt){const x=x0+(v-xmin)/(xmax-xmin)*(x1-x0);ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();ctx.textAlign='center';ctx.fillText(xf?xf(v):v,x,y1+13);}
+  ctx.textAlign='left';ctx.fillStyle='#b7c8da';ctx.fillText(yl,x0+4,y0+10);ctx.textAlign='right';ctx.fillText(xl,x1-2,y1-4);ctx.textAlign='left';
+}
+/* ---------- ENERGÍA ---------- */
+function sysData(){
+  const out={};SYSN.forEach(s=>{out[s[0]]={k:s[0],n:s[1],kW:0,kWh:0,on:0,cnt:0,inst:0,plateRun:0};});
+  PUMPS.filter(o=>o.ph<=S.phase).forEach(o=>{const d=out[GSYS[o.grp]];d.inst+=o.kw;d.cnt++;if(o.run){d.on++;d.plateRun+=o.kw;}});
+  AUXE.forEach(a=>{const d=out[a.sys];d.inst+=PLATE_AUX[a.id];d.cnt++;d.on++;});
+  const eq=(S.en&&S.en.eq)||{};for(const id in eq){const d=out[eq[id].sys];if(d){d.kW+=eq[id].kW;d.kWh+=eq[id].kWh;}}
+  return SYSN.map(s=>out[s[0]]);
+}
+function eqList(){
+  const eq=(S.en&&S.en.eq)||{},L=[];
+  PUMPS.filter(o=>o.ph<=S.phase).forEach(o=>{const e=eq[o.id]||{kW:0,kWh:0},st=stateInfo(o);L.push({id:o.id,name:o.name,sys:GSYS[o.grp],st:st[0],qn:o.qNow,dp:o.dpNow,eta:o.eta>0?o.eta*PM[o.grp].dr:0,kW:o.kwNow,plate:o.kw,kWh:e.kWh,run:o.run});});
+  AUXE.forEach(a=>{const e=eq[a.id]||{kW:0,kWh:0};L.push({id:a.id,name:a.name,sys:a.sys,st:'EN LÍNEA',qn:0,dp:0,eta:0,kW:e.kW,plate:PLATE_AUX[a.id],kWh:e.kWh,run:true});});
+  return L;
+}
+function skEnergy(){
+  return '<div class="vh"><h2>⚡ Consumo de energía por sistema y equipo</h2><span>kW = caudal × altura / (η bomba × η motor+VDF), con altura según curva del sistema · acumulados desde el inicio de la simulación</span><button id="enCsv">⬇ Exportar CSV</button></div>'+
+  '<div class="kgrid">'+kpi('e1','Potencia total','MW')+kpi('e2','Energía acumulada','MWh')+kpi('e3','SEC por m³ producido','kWh/m³')+kpi('e4','SEC por m³ entregado','kWh/m³')+kpi('e5','Carga de motores en marcha','% de placa')+kpi('e6','Energía recuperada por ERD','kW hid.')+'</div>'+
+  '<div class="vgrid"><div class="card wide"><h3>Reparto de potencia por sistema</h3><div class="stack" id="enStack"></div><div class="lg" id="enLg"></div></div>'+
+  '<div class="card wide"><h3>Consumo por sistema</h3><div style="overflow:auto"><table class="dt" id="enSys"></table></div><p class="note">Potencia de placa: nominal de bombas instaladas en la fase (incluye stand-by) y supuestos para auxiliares. «Aporte al SEC» = kW del sistema / permeado OI.</p></div>'+
+  '<div class="card wide"><h3>Consumo por equipo</h3><div class="cmpf"><label>Sistema <select id="enSel"><option value="">Todos</option>'+SYSN.map(s=>'<option value="'+s[0]+'">'+s[1]+'</option>').join('')+'</select></label><label id="enOnL"><input type="checkbox" id="enOn"> solo equipos en marcha</label></div><div style="overflow:auto;max-height:540px"><table class="dt" id="enEq"></table></div></div>'+
+  '<div class="card wide"><h3>Tendencia de potencia y SEC</h3><canvas class="vc" id="cvEn"></canvas><div id="enTl"></div></div></div>';
+}
+function updEnergy(){
+  const q=S.q,D=sysData(),tot=D.reduce((s,d)=>s+d.kW,0)||1,kwh=D.reduce((s,d)=>s+d.kWh,0);
+  setV('e1',fmt(q.kW/1000,2));setV('e2',fmt(kwh/1000,1));setV('e3',fmt(q.sec,2));setV('e4',fmt(q.secDel,2));
+  const run=PUMPS.filter(o=>o.run&&o.ph<=S.phase&&o.grp!=='CMP'),plate=run.reduce((s,o)=>s+o.kw,0);
+  setV('e5',plate?fmt(run.reduce((s,o)=>s+o.kwNow,0)/plate*100,0):'—');
+  setV('e6',fmt(q.erdKW,0));setH('e6s','evita ≈ '+fmt(q.qProd>0?q.erdKW/(PM.HP.hb*PM.HP.dr)/q.qProd:0,2)+' kWh/m³ en bombas AP');
+  setH('e3s','mínimo termodinámico ≈ '+fmt(q.secMin,2)+' kWh/m³');setH('e2s','potencia media '+fmt(S.t>0?S.tot.kwh/(S.t/3600)/1000:0,2)+' MW');
+  setH('enStack',D.map((d,i)=>'<i style="width:'+(d.kW/tot*100).toFixed(2)+'%;background:'+SYSCOL[i]+'" title="'+d.n+': '+fmt(d.kW)+' kW"></i>').join(''));
+  setH('enLg',D.map((d,i)=>'<span><i style="background:'+SYSCOL[i]+'"></i>'+d.n+' · '+fmt(d.kW/tot*100,1)+' %</span>').join(''));
+  let r='<tr><th class="tl">Sistema</th><th>En marcha</th><th>Potencia kW</th><th>% total</th><th class="tl" style="min-width:90px"></th><th>Energía acum. kWh</th><th>Aporte SEC kWh/m³</th><th>Placa instalada kW</th><th>Carga de placa en marcha</th></tr>';
+  D.forEach((d,i)=>{r+='<tr><td>'+d.n+'</td><td>'+d.on+' / '+d.cnt+'</td><td>'+fmt(d.kW)+'</td><td>'+fmt(d.kW/tot*100,1)+'</td><td><div class="bar"><i style="width:'+(d.kW/tot*100).toFixed(1)+'%;background:'+SYSCOL[i]+'"></i></div></td><td>'+fmt(d.kWh)+'</td><td>'+(q.qProd>50?fmt(d.kW/q.qProd,3):'—')+'</td><td>'+fmt(d.inst)+'</td><td>'+(d.plateRun>0?fmt(d.kW/d.plateRun*100)+' %':'—')+'</td></tr>';});
+  r+='<tr class="tot"><td>TOTAL PLANTA</td><td></td><td>'+fmt(q.kW)+'</td><td>100,0</td><td></td><td>'+fmt(kwh)+'</td><td>'+(q.qProd>50?fmt(q.sec,3):'—')+'</td><td>'+fmt(D.reduce((s,d)=>s+d.inst,0))+'</td><td></td></tr>';
+  setH('enSys',r);
+  const sel=($('#enSel')||{}).value||'',onl=($('#enOn')||{}).checked;
+  let L=eqList().filter(e=>(!sel||e.sys===sel)&&(!onl||e.kW>0.5)).sort((a,b)=>b.kW-a.kW);
+  const nm={};SYSN.forEach(s=>nm[s[0]]=s[1]);
+  let t='<tr><th class="tl">Tag</th><th class="tl">Equipo</th><th class="tl">Sistema</th><th class="tl">Estado</th><th>Caudal m³/h</th><th>Altura bar</th><th>η total %</th><th>Potencia kW</th><th>% placa</th><th>Energía kWh</th></tr>';
+  L.forEach(e=>{t+='<tr class="'+(e.kW>0.5?'':'dim')+'"><td>'+e.id+'</td><td class="tl">'+esc(e.name)+'</td><td class="tl">'+nm[e.sys]+'</td><td class="tl">'+e.st+'</td><td>'+(e.qn>0?fmt(e.qn):'')+'</td><td>'+(e.dp>0?fmt(e.dp,1):'')+'</td><td>'+(e.eta>0?fmt(e.eta*100,1):'')+'</td><td>'+fmt(e.kW,1)+'</td><td>'+(e.plate>0?fmt(e.kW/e.plate*100)+' %':'')+'</td><td>'+fmt(e.kWh)+'</td></tr>';});
+  setH('enEq',t);
+  miniChart('cvEn',['kW','sec','prodLs'],'enTl');
+}
+function exportEnergyCsv(){
+  const D=sysData(),rows=[['Sistema','Potencia kW','Energia kWh','Placa instalada kW']].concat(D.map(d=>[d.n,d.kW.toFixed(1),d.kWh.toFixed(1),d.inst.toFixed(0)]));
+  rows.push([]);rows.push(['Tag','Equipo','Sistema','Estado','Caudal m3/h','Altura bar','Eta total','Potencia kW','Placa kW','Energia kWh']);
+  const nm={};SYSN.forEach(s=>nm[s[0]]=s[1]);
+  eqList().sort((a,b)=>b.kW-a.kW).forEach(e=>rows.push([e.id,e.name,nm[e.sys],e.st,e.qn.toFixed(0),e.dp.toFixed(2),e.eta.toFixed(3),e.kW.toFixed(1),e.plate,e.kWh.toFixed(1)]));
+  dl('energia_'+stamp()+'.csv','text/csv;charset=utf-8','﻿'+rows.map(r=>r.join(';').replace(/\./g,',')).join('\n'));
+}
+/* ---------- EFICIENCIA Y PUNTO DE OPERACIÓN ---------- */
+let secCurve=null,secKey='';
+function calcCurve(){
+  const mx=200*(S.phase+3),key=[S.phase,S.env.tds,Math.round(S.q.temp*2),Math.round(avgF()*50)].join('|');
+  if(key===secKey&&secCurve)return secCurve;secKey=key;
+  const pts=[];for(let L=200;L<=mx;L+=10){const r=steady(L);if(r)pts.push({x:r.sp,y:r.sec,y2:r.secNoERD,N:r.N});}
+  secCurve=pts;return pts;
+}
+const DESIGN_OPT={f:0.25,T:15,tds:38300,pf:0.45,tmp:0.5};
+function pumpStat(g){
+  const L=G[g].filter(o=>o.run&&o.ph<=S.phase&&o.qNow>0);if(!L.length)return null;
+  const n=L.length,av=f=>L.reduce((s,o)=>s+f(o),0)/n;
+  return {n:n,Q:av(o=>o.qNow),dp:av(o=>o.dpNow),s:av(o=>o.spd)/100,eta:av(o=>o.eta),kW:L.reduce((s,o)=>s+o.kwNow,0),qn:L[0].qn,hb:PM[g].hb,dr:PM[g].dr,Hn:PM[g].Hn};
+}
+function skEff(){
+  return '<div class="vh"><h2>📈 Eficiencia total del sistema y punto de operación</h2><span>Rendimientos calculados con el modelo de bombas (afinidad + curva típica) y el modelo de OI/ERD; valores de diseño de los documentos 16059-ILF</span></div>'+
+  '<div class="kgrid">'+kpi('f1','SEC global (por m³ producido)','kWh/m³')+kpi('f2','SEC mínimo termodinámico','kWh/m³')+kpi('f3','Eficiencia de 2ª ley','%')+kpi('f4','SEC sin ERD (referencia)','kWh/m³')+kpi('f5','Recuperación global planta','% entrega/captación')+kpi('f6','Recuperación OI','% (diseño 44,8)')+kpi('f7','Eficiencia UF','% (diseño 92)')+kpi('f8','Rendimiento bombas (wire-to-water)','%')+'</div>'+
+  '<div class="vgrid"><div class="card wide"><h3>Punto de operación de la planta: SEC vs producción</h3><canvas class="vc" id="cvOp" style="height:300px"></canvas><p class="note">Curva de régimen estacionario con las condiciones actuales (T, SDT y ensuciamiento medio de racks), aplicando la modularidad por racks (200 L/s por paso) y la zona operable (≥ 70 % de carga por rack). El punto blanco es la operación medida; el rombo es el diseño (1.200 L/s, ensuciamiento 25 %, 15 °C, SDT 38.300 mg/L).</p></div>'+
+  '<div class="card"><h3>Punto de operación vs diseño</h3><table class="dt" id="opDes"></table></div>'+
+  '<div class="card"><h3>Balance de agua de la planta</h3><table class="dt" id="effBal"></table></div>'+
+  '<div class="card wide"><h3>Punto de operación de bombas: curva bomba – sistema</h3><div class="cmpf"><label>Grupo <select id="pgSel"><option value="INT">Captación 1320-PP</option><option value="UFF">Alimentación UF 1332-PP</option><option value="HP">Alta presión OI 1340-PP-007…012</option><option value="PEAP">Agua potable PEAP 1353-PP</option></select></label></div><canvas class="vc" id="cvPump" style="height:300px"></canvas><p class="note" id="pgNote"></p></div>'+
+  '<div class="card wide"><h3>Eficiencia de bombas por grupo</h3><div style="overflow:auto"><table class="dt" id="effPmp"></table></div><p class="note">η bomba = rendimiento hidráulico al punto de operación (BEP desplazado con la velocidad: Q<sub>BEP</sub> = n/n<sub>nom</sub> × Q<sub>nom</sub>); η motor+VDF supuesto 94–95 %. Curvas típicas supuestas (cierre = 120 % de la altura de diseño): reemplazar por las curvas de los proveedores.</p></div></div>';
+}
+function updEff(){
+  const q=S.q,sl=S.sp;
+  setV('f1',fmt(q.sec,2));setV('f2',fmt(q.secMin,2));setV('f3',q.sec>0?fmt(q.secMin/q.sec*100,1):'—');setV('f4',fmt(q.secNoERD,2));setH('f4s',q.secNoERD>0?'ERD ahorra '+fmt((1-q.sec/q.secNoERD)*100,0)+' % de la energía':'');
+  setH('f2s','a '+fmt(S.env.tds)+' mg/L, '+fmt(q.temp,1)+' °C, rec. '+fmt(DES.rec*100,1)+' %');
+  setV('f5',fmt(q.recGlobal*100,1));setV('f6',fmt(q.rec*100,1));setV('f7',fmt(q.ufEff*100,1));
+  const pm=PUMPS.filter(o=>o.grp!=='CMP'),kWp=pm.reduce((s,o)=>s+o.kwNow,0),hy=pm.reduce((s,o)=>s+o.hyd,0);setV('f8',kWp>0?fmt(hy/kWp*100,1):'—');
+  /* tabla punto de operación vs diseño */
+  const dsg=steady(200*(S.phase+3),DESIGN_OPT),cur=steady(sl.eff);
+  const st=(ok,w)=>'<span class="pill '+(ok?'ok':w?'warn':'bad')+'">'+(ok?'OK':w?'ATENCIÓN':'FUERA')+'</span>';
+  const rng=(v,a,b)=>v>=a&&v<=b;
+  const svU=UF.filter(u=>u.state==='SERV');
+  let r='<tr><th class="tl">Parámetro</th><th>Actual</th><th>Diseño / límite</th><th></th></tr>';
+  const row=(n,a,d,s)=>{r+='<tr><td>'+n+'</td><td>'+a+'</td><td>'+d+'</td><td>'+s+'</td></tr>';};
+  row('Producción / consigna efectiva (L/s)',fmt(q.qProd/3.6/(1+DES.intUse))+' / '+fmt(sl.eff),'200 – '+fmt(200*(S.phase+3)),st(Math.abs(q.qProd/3.6/(1+DES.intUse)-sl.cur)<0.03*Math.max(sl.cur,1)||sl.cur<1,true));
+  row('Racks OI en marcha / requeridos',q.nRun+' / '+sl.N,'N+0 (sin respaldo)',st(q.nRun===sl.N,true));
+  row('Carga por rack (% del permeado nominal)',fmt(q.loadRO*100),'70 – 100 %',st(q.nRun===0||rng(q.loadRO,DES.loadMin-0.005,1.001),true));
+  row('Presión de alimentación OI (bar)',fmt(q.P,1)+' (esperada '+fmt(q.Pexp,1)+')','55 – 60 (≤ 110 % esperada)',st(q.nRun===0||(q.P<=1.05*q.Pexp&&q.P>=0.8*q.Pexp),q.P<=1.1*q.Pexp));
+  row('Recuperación OI (%)',fmt(q.rec*100,1),'44,8 ≈ 45',st(q.nRun===0||rng(q.rec*100,44,46),true));
+  row('Eficiencia UF (%)',fmt(q.ufEff*100,1),'≥ 92',st(q.ufEff===0||q.ufEff>=0.9,true));
+  row('TMP media UF (bar)',fmt(q.tmp,2),'0,2 – 0,8 (máx. 1,5)',st(q.tmp<=0.8,q.tmp<=1.5));
+  row('ΔP media prefiltros (bar)',fmt(avgPFdp(),2),'0,1 – 0,5',st(avgPFdp()<=0.5,avgPFdp()<=0.7));
+  row('SEC global (kWh/m³)',fmt(q.sec,2),'régimen a consigna: '+(cur?fmt(cur.sec,2):'—')+' · diseño: '+(dsg?fmt(dsg.sec,2):'—'),st(!cur||q.sec<=cur.sec*1.06,q.sec<=cur.sec*1.15));
+  row('Potencia total (MW)',fmt(q.kW/1000,2),'régimen a consigna: '+(cur?fmt(cur.kW/1000,2):'—'),st(!cur||q.kW<=cur.kW*1.06,q.kW<=cur.kW*1.15));
+  row('Temperatura agua de mar (°C)',fmt(q.temp,1),'10,9 – 19',st(rng(q.temp,10.9,19),true));
+  row('SDT agua de mar (mg/L)',fmt(S.env.tds),'38.060 – 38.598',st(rng(S.env.tds,38060,38598),true));
+  setH('opDes',r);
+  /* balance de agua */
+  const Qi=q.qIn||1,b=[['Captación (FIT 32018)',q.qIn],['Alimentación UF + prefiltros',q.qFeed],['By-pass a cámara de rechazo',q.qByp],['Filtrado UF total',q.qFilt],['  − agua de retrolavado / CEB UF (se recircula a rechazo)',q.useU+q.useC],['Alimentación OI',q.qRO],['Permeado OI (incl. 0,5 % uso interno)',q.qProd],['Entrega a cliente (PEAP)',q.qDel],['Salmuera OI',q.qBrine],['Rechazo total a cámara de carga',q.qRejIn],['Emisario al mar',q.qEmi]];
+  let rb='<tr><th class="tl">Corriente</th><th>m³/h</th><th>L/s</th><th>% captación</th></tr>';b.forEach(x=>{rb+='<tr><td>'+x[0]+'</td><td>'+fmt(x[1])+'</td><td>'+fmt(x[1]/3.6)+'</td><td>'+fmt(x[1]/Qi*100,1)+'</td></tr>';});
+  setH('effBal',rb);
+  /* bombas por grupo */
+  const GN={INT:'Captación',UFF:'Alimentación UF',BWP:'BW prefiltros',BWU:'BW / CEB UF',CIPU:'CIP UF',HP:'Alta presión OI',BST:'Booster ERD',PEAP:'Agua potable',NEU:'Neutralización',CIPR:'CIP / flushing OI'};
+  let rp='<tr><th class="tl">Grupo</th><th>En marcha</th><th>Q por bomba m³/h</th><th>ΔP bar</th><th>Velocidad %</th><th>η bomba %</th><th>η motor+VDF %</th><th>η total %</th><th>Potencia kW</th><th>Q / Q<sub>BEP</sub> %</th><th class="tl">Zona</th></tr>';
+  Object.keys(GN).forEach(g=>{const p=pumpStat(g);if(!p){rp+='<tr class="dim"><td>'+GN[g]+'</td><td>0</td><td colspan="9" class="tl">detenido</td></tr>';return;}
+    const x=p.Q/(p.s*p.qn),ok=x>=0.7&&x<=1.15;rp+='<tr><td>'+GN[g]+'</td><td>'+p.n+'</td><td>'+fmt(p.Q)+'</td><td>'+fmt(p.dp,1)+'</td><td>'+fmt(p.s*100)+'</td><td>'+fmt(p.eta*100,1)+'</td><td>'+fmt(p.dr*100,1)+'</td><td>'+fmt(p.eta*p.dr*100,1)+'</td><td>'+fmt(p.kW)+'</td><td>'+fmt(x*100)+'</td><td class="tl"><span class="pill '+(ok?'ok':'warn')+'">'+(ok?'Zona preferente':'Fuera de 70–115 %')+'</span></td></tr>';});
+  setH('effPmp',rp);
+  drawOp(dsg);drawPump();
+}
+function drawOp(dsg){
+  const c=cvSetup('cvOp');if(!c)return;const ctx=c.ctx,w=c.w,h=c.h,x0=52,x1=w-16,y0=14,y1=h-30,mx=200*(S.phase+3),pts=calcCurve();
+  let ym=0;pts.forEach(p=>{ym=Math.max(ym,p.y2);});ym=Math.ceil((ym+0.3)*2)/2;
+  axes(ctx,x0,y0,x1,y1,0,mx,0,ym,200,0.5,'Producción (L/s)','SEC (kWh/m³)',v=>fmt(v),v=>fmt(v,1));
+  const X=v=>x0+v/mx*(x1-x0),Y=v=>y1-v/ym*(y1-y0);
+  const line=(key,col,dash,wd)=>{ctx.strokeStyle=col;ctx.lineWidth=wd||2;ctx.setLineDash(dash||[]);ctx.beginPath();pts.forEach((p,i)=>{const x=X(p.x),y=Y(p[key]);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.stroke();ctx.setLineDash([]);};
+  line('y2','#e0a050',[6,4],1.5);line('y','#4aa8ff',null,2.2);
+  ctx.strokeStyle='#2fd27a';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(x0,Y(S.q.secMin));ctx.lineTo(x1,Y(S.q.secMin));ctx.stroke();ctx.setLineDash([]);
+  ctx.font='10px sans-serif';ctx.fillStyle='#4aa8ff';ctx.fillText('con ERD (régimen)',x0+8,y0+24);ctx.fillStyle='#e0a050';ctx.fillText('sin ERD (referencia)',x0+8,y0+38);ctx.fillStyle='#2fd27a';ctx.fillText('mínimo termodinámico',x0+8,Y(S.q.secMin)-4);
+  if(dsg){const x=X(dsg.sp),y=Y(dsg.sec);ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.moveTo(x,y-7);ctx.lineTo(x+7,y);ctx.lineTo(x,y+7);ctx.lineTo(x-7,y);ctx.closePath();ctx.fill();ctx.textAlign='right';ctx.fillText('Diseño '+fmt(dsg.sec,2),x-10,y-8);ctx.textAlign='left';}
+  if(S.q.qProd>50&&S.q.sec>0){const lx=S.q.qProd/3.6/(1+DES.intUse),x=X(lx),y=Y(S.q.sec);ctx.fillStyle='#fff';ctx.strokeStyle='#0a1017';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,6,0,6.2832);ctx.fill();ctx.stroke();ctx.textAlign=x>w*0.7?'right':'left';ctx.fillText('Operación actual: '+fmt(lx)+' L/s · '+fmt(S.q.sec,2)+' kWh/m³',x+(x>w*0.7?-10:10),y+16);ctx.textAlign='left';}
+}
+function drawPump(){
+  const sel=document.getElementById('pgSel');if(!sel)return;const g=sel.value,c=cvSetup('cvPump');if(!c)return;
+  const ctx=c.ctx,w=c.w,h=c.h,p=pumpStat(g);
+  if(!p){ctx.fillStyle='#7b90a6';ctx.font='13px sans-serif';ctx.fillText('Grupo detenido: no hay punto de operación.',14,30);setH('pgNote','');return;}
+  const x0=52,x1=w-52,y0=14,y1=h-30,Qn=p.qn,Hn=p.Hn,H0=1.2*Hn,a=0.2*Hn/(Qn*Qn),xm=1.3*Qn,ym=1.4*H0,s=p.s;
+  axes(ctx,x0,y0,x1,y1,0,xm,0,ym,Math.round(Qn/4/50)*50||50,Math.max(1,Math.round(ym/6)),'Q por bomba (m³/h)','H (bar)',v=>fmt(v),v=>fmt(v,0));
+  const X=v=>x0+v/xm*(x1-x0),Y=v=>y1-v/ym*(y1-y0),Ye=v=>y1-v*(y1-y0);
+  const curve=(f,col,dash,wd)=>{ctx.strokeStyle=col;ctx.lineWidth=wd||2;ctx.setLineDash(dash||[]);ctx.beginPath();let st=false;for(let i=0;i<=80;i++){const Q=xm*i/80,H=f(Q);if(H<0){break;}const x=X(Q),y=Y(H);if(!st){ctx.moveTo(x,y);st=true;}else ctx.lineTo(x,y);}ctx.stroke();ctx.setLineDash([]);};
+  curve(Q=>H0-a*Q*Q,'#3c6fa3',[5,4],1.4);
+  curve(Q=>s*s*H0-a*Q*Q,'#4aa8ff',null,2.2);
+  const n=p.n,hs={INT:Q=>SYSCURVE.INT(n*Q),PEAP:Q=>SYSCURVE.PEAP(n*Q)}[g]||(()=>{const f=g==='HP'?0.9:0.45,Hs=f*p.dp;return Q=>Hs+(p.dp-Hs)*Math.pow(Q/p.Q,2);})();
+  curve(hs,'#ff7a59',null,2.2);
+  /* rendimiento (eje derecho) */
+  ctx.strokeStyle='#2fd27a';ctx.lineWidth=1.8;ctx.beginPath();for(let i=0;i<=80;i++){const Q=xm*i/80,xx=Q/(s*Qn),e=Math.max(0.3,p.hb*(1-0.35*(1-xx)*(1-xx)));const x=X(Q),y=Ye(e);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);}ctx.stroke();
+  ctx.fillStyle='#2fd27a';ctx.font='10px sans-serif';ctx.textAlign='left';[0,0.25,0.5,0.75,1].forEach(v=>ctx.fillText(Math.round(v*100)+' %',x1+6,Ye(v)+3));ctx.fillText('η',x1+6,y0+8);
+  ctx.strokeStyle='#8aa0b6';ctx.setLineDash([2,4]);const xb=X(s*Qn);ctx.beginPath();ctx.moveTo(xb,y0);ctx.lineTo(xb,y1);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#8aa0b6';ctx.fillText('Q BEP',xb+3,y0+22);
+  const ox=X(p.Q),oy=Y(p.dp);ctx.fillStyle='#fff';ctx.strokeStyle='#0a1017';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ox,oy,6,0,6.2832);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#4aa8ff';ctx.fillText('Bomba a '+fmt(s*100)+' % vel.',x0+8,y0+12);ctx.fillStyle='#3c6fa3';ctx.fillText('Bomba a 100 % vel. (curva típica)',x0+8,y0+26);ctx.fillStyle='#ff7a59';ctx.fillText('Curva del sistema',x0+8,y0+40);
+  setH('pgNote',p.n+' bomba(s) en marcha · Q = '+fmt(p.Q)+' m³/h/bomba · H = '+fmt(p.dp,1)+' bar · n = '+fmt(s*100)+' % · η bomba = '+fmt(p.eta*100,1)+' % · P = '+fmt(p.kW)+' kW. '+(g==='INT'||g==='PEAP'?'Curva del sistema: estática + fricción (supuesto).':'Curva del sistema ajustada al punto actual (fracción estática supuesta).'));
+}
+/* ---------- REGULACIÓN DE CAUDAL ---------- */
+function skReg(){
+  const mx=200*(S.phase+3);
+  return '<div class="vh"><h2>🎚 Regulación del caudal de salida (hasta 1.200 L/s)</h2><span>Consigna de producción de planta → racks OI (escalones de 200 L/s) → cascada hacia captación y PEAP · OPE §3.3.1, CTRL §3.7 (Tabla 3-4)</span></div>'+
+  '<div class="vgrid"><div class="card"><h3>Consigna de producción de planta (FIC 353022)</h3>'+
+  '<div class="rg"><label for="rgNum">Consigna operador</label><div><input type="number" id="rgNum" min="200" max="'+mx+'" step="10" value="'+S.sp.Ls+'"> <b>L/s</b> <small style="color:var(--dim)" id="rgM3">'+fmt(S.sp.Ls*3.6)+' m³/h</small></div>'+
+  '<label for="rgSl">Ajuste</label><input type="range" id="rgSl" min="200" max="'+mx+'" step="10" value="'+S.sp.Ls+'">'+
+  '<label>Pasos</label><div class="chipb" id="rgSteps">'+[-200,-50,-10,10,50,200].map(d=>'<button data-spd="'+d+'">'+(d>0?'+':'')+d+'</button>').join('')+'</div>'+
+  '<label>Escalones</label><div class="chipb" id="rgPre">'+seq(1,S.phase+3).map(n=>'<button data-sp="'+200*n+'">'+200*n+' L/s</button>').join('')+'</div>'+
+  '<label for="rgRamp">Rampa de consigna</label><select id="rgRamp">'+[5,10,20,30,50,100].map(v=>'<option value="'+v+'"'+(S.sp.ramp===v?' selected':'')+'>'+v+' L/s por minuto</option>').join('')+'</select>'+
+  '<label>Entrega a cliente</label><div><label><input type="checkbox" id="rgFollow"'+(S.sp.dLs==null?' checked':'')+'> seguir a la producción</label> <input type="range" id="rgDem" min="0" max="1200" step="10" value="'+(S.sp.dLs==null?S.sp.cur:S.sp.dLs)+'" style="width:150px"> <b id="rgDemV"></b></div></div>'+
+  '<p class="note">Entradas protegidas al rango de diseño de la fase (200 – '+mx+' L/s). Cada rack entrega 200 L/s (720 m³/h); la carga por rack se mantiene entre 70 y 100 % (supuesto a validar con el proveedor de membranas), por lo que las consignas intermedias se reparten entre racks y las zonas no operables se ajustan automáticamente.</p></div>'+
+  '<div class="card"><h3>Estado de la regulación</h3><table class="dt" id="rgSt"></table><div class="gauge" id="rgG"><div class="f" id="rgGf"></div><div class="f2" id="rgGp"></div><div class="sp" id="rgGs"></div></div><div id="rgWarn"></div></div>'+
+  '<div class="card wide"><h3>Modularidad de la planta según la carga (CTRL Tabla 3-4)</h3><div style="overflow:auto"><table class="dt" id="rgMod"></table></div></div>'+
+  '<div class="card wide"><h3>Lazos de regulación en cascada</h3><div style="overflow:auto"><table class="dt" id="rgLoops"></table></div></div>'+
+  '<div class="card wide"><h3>Tendencia: consigna, producción y entrega</h3><canvas class="vc" id="cvRg" style="height:220px"></canvas><div id="rgTl"></div></div></div>';
+}
+function updReg(){
+  const q=S.q,sp=S.sp,mx=200*(S.phase+3),act=document.activeElement&&document.activeElement.id;
+  const num=$('#rgNum'),sl=$('#rgSl');
+  if(num&&+num.max!==mx){num.max=mx;sl.max=mx;}
+  if(num&&act!=='rgNum')num.value=sp.Ls;if(sl&&act!=='rgSl')sl.value=sp.Ls;
+  setV('rgM3',fmt(sp.Ls*3.6)+' m³/h');
+  const dm=$('#rgDem'),fo=$('#rgFollow');if(dm&&act!=='rgDem'){dm.value=sp.dLs==null?Math.round(sp.cur):sp.dLs;}dm.disabled=fo.checked;setV('rgDemV',fmt(sp.dLs==null?sp.cur:sp.dLs)+' L/s');
+  const prodLs=q.qProd/3.6/(1+DES.intUse);
+  let r='';const row=(a,b)=>{r+='<tr><td class="tl">'+a+'</td><td>'+b+'</td></tr>';};
+  row('Consigna del operador',fmt(sp.Ls)+' L/s');row('Consigna efectiva (zona operable)',fmt(sp.eff)+' L/s · '+sp.N+' rack(s) a '+fmt(sp.eff/(200*sp.N)*100)+' %');
+  row('Consigna en rampa (SP actual de lazos)','<b>'+fmt(sp.cur,1)+' L/s</b> · rampa '+sp.ramp+' L/s/min');row('Producción OI (FIT 34201, sin uso interno)',fmt(prodLs,1)+' L/s · '+fmt(q.qProd)+' m³/h (con 0,5 % uso interno)');
+  row('Entrega a cliente (FIT 353022) – PV','<b>'+fmt(q.qDel/3.6,1)+' L/s</b> · '+fmt(q.qDel)+' m³/h');row('Racks OI en marcha / requeridos',q.nRun+' / '+sp.N+' (carga media '+fmt(q.loadRO*100)+' %)');
+  row('Nivel estanque remineralizado',fmt(q.remPct,1)+' %');row('Volumen entregado acumulado',fmt(S.tot.del/1000,1)+' mil m³');
+  setH('rgSt','<tr><th class="tl">Variable</th><th>Valor</th></tr>'+r);
+  const p=x=>(x/1200*100).toFixed(2)+'%';
+  if(!$('#rgG').__t){let t='';for(let v=0;v<=1200;v+=200)t+='<div class="tk" style="left:'+p(v)+'"><em>'+v+'</em></div>';t+='<div style="position:absolute;right:0;top:0;bottom:0;width:'+p(1200-mx)+';background:#000a;border-radius:0 5px 5px 0"></div>';$('#rgG').insertAdjacentHTML('beforeend',t);$('#rgG').__t=1;}
+  $('#rgGf').style.width=p(sp.cur);$('#rgGp').style.width=p(prodLs);$('#rgGs').style.left=p(sp.eff);
+  let w='';if(sp.adj)w+='<p class="note" style="color:#f5b83d">⚠ La consigna '+fmt(sp.Ls)+' L/s cae en zona no operable (carga por rack < 70 %): se ajusta a '+fmt(sp.eff)+' L/s.</p>';
+  if(sp.tShort>300)w+='<p class="note" style="color:#ff6b6b">⚠ Consigna no alcanzable con los racks disponibles (disparo o parada).</p>';
+  if(S.roHold||q.remPct>93)w+='<p class="note" style="color:#f5b83d">⚠ Estanque remineralizado alto: la producción se reduce/retiene por nivel (demanda del cliente menor que la producción).</p>';
+  setH('rgWarn',w);
+  /* modularidad */
+  let m='<tr><th>Carga de planta</th><th>Producción</th><th>Racks OI</th><th>Bombas agua de mar</th><th>Bombas alim. UF</th><th>Prefiltros</th><th>Racks UF</th><th>Bombas PEAP</th></tr>';
+  for(let n=1;n<=6;n++){const on=n>S.phase+3;m+='<tr class="'+(n===sp.N?'cur':on?'dim':'')+'"><td>'+fmt(n/6*100,1)+' %</td><td>'+200*n+' L/s · '+fmt(720*n)+' m³/h</td><td>'+n+'</td><td>'+n+' (+1 stand-by)</td><td>'+n+' (+1)</td><td>'+NPF[n]+'</td><td>'+NUF[n]+'</td><td>'+n+' (+1)</td></tr>';}
+  const cnt=(a,f)=>a.filter(f).length,N=sp.N,delN=Math.ceil((sp.dLs==null?sp.cur:sp.dLs)*3.6/720-0.05);
+  const eqs=[['Racks OI',cnt(RO,r=>r.state==='RUN'),N],['Bombas agua de mar',cnt(G.INT,o=>o.run),q.nAct],['Bombas alimentación UF',cnt(G.UFF,o=>o.run),q.nAct],['Prefiltros (SERV + BW)',cnt(PF,f=>f.ph<=S.phase&&(f.state==='SERV'||f.state==='BW')),NPF[N]],['Racks UF (SERV + BW/CEB)',cnt(UF,u=>u.ph<=S.phase&&(u.state==='SERV'||u.state==='BW'||u.state==='CEB')),NUF[N]],['Bombas PEAP',cnt(G.PEAP,o=>o.run),Math.max(0,delN)]];
+  m+='<tr class="tot"><td class="tl" colspan="8">En servicio ahora vs requerido</td></tr>';
+  m+='<tr><td colspan="8" style="text-align:left">'+eqs.map(e=>'<span class="pill '+(e[1]===e[2]?'ok':'warn')+'" style="margin:2px 6px 2px 0">'+e[0]+': '+e[1]+' / '+e[2]+'</span>').join('')+'</td></tr>';
+  setH('rgMod',m);
+  /* lazos */
+  const av=(g,f)=>{const L=G[g].filter(o=>o.run&&o.ph<=S.phase);return L.length?L.reduce((s,o)=>s+f(o),0)/L.length:0;};
+  const lp=[['FIC 353022 · entrega a cliente (PEAP)',fmt(sp.dLs==null?sp.cur:sp.dLs,1)+' L/s',fmt(q.qDel/3.6,1)+' L/s','VDF PEAP '+fmt(av('PEAP',o=>o.spd))+' % · '+cnt(G.PEAP,o=>o.run)+' bomba(s)'],
+   ['FIC permeado por rack (FIT 34055 → VDF bomba intermedia/AP)',fmt(q.nRun?sp.cur*3.6*(1+DES.intUse)/q.nRun:0)+' m³/h por rack',fmt(q.nRun?q.qProd/q.nRun:0)+' m³/h por rack','VDF AP '+fmt(av('HP',o=>o.spd))+' % · P = '+fmt(q.P,1)+' bar'],
+   ['FIC alimentación UF (FIT 33223 → VDF 1332-PP)',fmt(q.needFeed)+' m³/h',fmt(q.qFeed)+' m³/h','VDF '+fmt(av('UFF',o=>o.spd))+' % · '+cnt(G.UFF,o=>o.run)+' bomba(s)'],
+   ['FIC captación (FIT 32018 → VDF 1320-PP) + trim de nivel',fmt(q.needFeed*(1+(q.trim||0)))+' m³/h (trim '+fmt((q.trim||0)*100,1)+' %)',fmt(q.qIn)+' m³/h','VDF '+fmt(av('INT',o=>o.spd))+' % · '+cnt(G.INT,o=>o.run)+' bomba(s)'],
+   ['LIC 33201 · nivel estanque agua de mar (trim ±10 %)','55 %',fmt(q.swPct,1)+' %','ajusta caudal; no reduce el nº de bombas'],
+   ['Reparto de consigna entre racks','200 L/s por rack (100 %)',fmt(q.loadRO*100)+' % de carga','mínimo 70 % (supuesto)']];
+  let l='<tr><th class="tl">Lazo</th><th>Consigna (SP)</th><th>Medición (PV)</th><th class="tl">Salida / actuador</th></tr>';lp.forEach(x=>{l+='<tr><td class="tl">'+x[0]+'</td><td>'+x[1]+'</td><td>'+x[2]+'</td><td class="tl">'+x[3]+'</td></tr>';});
+  setH('rgLoops',l);
+  miniChart('cvRg',['spLs','prodLs','delLs'],'rgTl');
+}
+/* ---------- CUMPLIMIENTO ---------- */
+const DOCS={CTRL:'16059-ILF-00-BS-IC-INF-0001 Filosofía de Control',CRI:'16059-ILF-00-ME-HP-CRI-0001 Criterios de Diseño de Procesos',OPE:'16059-ILF-00-BS-HP-INF-0005 Filosofía de Operación del Sistema',PID:'P&ID 16059-ILF-00-BS-HP-PID-0002…0023'};
+const CHK=[
+['C','CRI §3.1.1 · CTRL (descripción general)','Capacidad 1.200 L/s en 3 fases (800 / 1.000 / 1.200 L/s) con escalones de 200 L/s (1 rack OI = 720 m³/h).','Selector de fase 4 / 5 / 6 racks; la consigna se limita a 200 L/s × racks instalados.'],
+['C','CRI §3.1.1','Producción adicional del 0,5 % del permeado por rack para uso interno.','Permeado OI = 1,005 × entrega (4.341,6 vs 4.320 m³/h en Fase 3).'],
+['C','CRI §3.1.1 · OPE T3-13','OI de 1 paso, recuperación 45 %, 1.614 m³/h de alimentación y ≈ 724 m³/h de permeado por rack.','Modelado con 723,5 / 1.614,2 m³/h (rec. 44,8 %); salmuera ≈ 891 m³/h por rack.'],
+['P','CRI §3.1.1 · OPE T3-9','UF con 92 % de eficiencia (incluye retrolavados y CEB).','El consumo de BW (50 s) y CEB sale del estanque de BW y se repone con filtrado: eficiencia simulada ≈ 93 % (media 48 h). Valor de diseño es 92 %.'],
+['P','OPE §3.7.1','Presión de operación de racks OI entre 55 y 60 bar.','Presión calculada con presión osmótica, T, SDT, flux y ensuciamiento: ≈ 52–58 bar (esperada con 25 % de ensuciamiento ≈ 54,6 bar a 15 °C). Parámetros del modelo supuestos.'],
+['C','CRI T3-2 · CTRL §3.2.2','Redundancia de bombas de agua de mar N+1 (4+1, 5+1, 6+1).','7 bombas 1320-PP-001…007 con instalación por fase; arranque automático de la de reserva ante disparo.'],
+['D','CRI T3-2 · CTRL §3.6.1 · PID 0018','Bombas de agua potable: CRI exige N+1 (Fase 1) y N+2 (Fases 2 y 3); CTRL y P&ID indican 7 bombas 4+1 / 5+1 / 6+1.','Se modelan 7 bombas (N+1) como en CTRL y P&ID; con el criterio CRI la Fase 3 requeriría 8 bombas. Aclarar con ILF.'],
+['C','CRI T3-2 · CTRL §3.3.1','Bombas de alimentación a UF N+1 (7 bombas, 4+1 / 5+1 / 6+1).','1332-PP-001…007.'],
+['D','CRI T3-2 · CTRL T3-4 · OPE T3-9','Prefiltros y racks UF con redundancia N-2, pero la Tabla 3-4 de CTRL pide 24 prefiltros y 18 racks UF en operación al 100 %.','Hay 24 prefiltros y 18 racks instalados: al 100 % no queda reserva (N-2 no es compatible con CTRL T3-4). El modelo opera 24/18 con 1 retrolavado por tren. Aclarar con ILF.'],
+['C','CRI T3-2','Bombas de retrolavado UF N+1.','3 bombas 1336-PP-001/003/004; hasta 2 retrolavados simultáneos (1 por tren).'],
+['P','CRI T3-2','Contactores de calcita N-1.','7 contactores dibujados; sin lógica de carga por unidad ni de redundancia.'],
+['C','CRI T3-2 · CRI §3.3.4','OI N+0; una bomba de alta presión, un booster y un ERD por rack, sin respaldo.','6 racks con HP 1340-PP-007…012, booster 1340-PP-013…018 y ERD 1342-RE-001…006.'],
+['C','CTRL §3.7 T3-4','Modularidad según carga de planta (bombas de agua de mar, alimentación UF, prefiltros, racks UF, racks OI y PEAP).','Aplicada la tabla completa de 16,7 % a 100 % (ver Regulación Q): 5/9/12/16/20/24 prefiltros y 4/7/9/12/15/18 racks UF.'],
+['C','OPE §3.3.1','Setpoint de producción entre 720 y 4.320 m³/h (200–1.200 L/s), por pasos de rack, con entradas del operador protegidas al rango de diseño.','Consigna 200–1.200 L/s limitada por fase. Zona de carga mínima por rack del 70 % es un supuesto (proveedor de membranas).'],
+['P','OPE §3.2 · CTRL §3.2','Arranque / parada en cascada con retardos, rampa ascendente y descendente, arranque en frío y en caliente.','Rampa de consigna configurable (5–100 L/s/min) y secuencia de arranque de racks (120 s). No se modelan los retardos de arranque en frío (30 min con confirmación) ni los by-pass modulantes.'],
+['P','OPE §3.2.4','Rampa descendente: último paso de OI con flushing; UF se detiene tras BW / CEB.','Flushing OI de 600 s modelado. La UF se detiene sin BW/CEB previo.'],
+['C','OPE §3.2.4 · §3.5.2','No reducir el setpoint de UF por trips cortos de OI (la UF sigue la demanda esperada).','Prefiltros y racks UF se seleccionan por la consigna (N objetivo), no por los racks OI en servicio en ese instante.'],
+['C','CTRL §3.2.2.2','Bombas de captación: control de flujo por VDF (FIT-32018), nº de bombas según módulos OI y trim de nivel (LIT-33201) sin reducir bombas.','Caudal = consigna de alimentación × (1 ± trim), trim proporcional ±10 % con el nivel del estanque de agua de mar (consigna 55 %).'],
+['D','PID 0003 · CTRL §3.2.2.2','CTRL pide regulación de velocidad (VDF) en las bombas de captación; el P&ID 0003 las muestra sin VDF.','Se modelaron con VDF (según CTRL). Si se mantiene arranque directo, el trim de nivel no sería posible.'],
+['C','CTRL §3.2.2.2','Cambio automático a bomba de reserva ante disparo; el operador puede cambiar manualmente.','Selección AUTO por horas de marcha y reemplazo inmediato; modo MAN por equipo.'],
+['P','CTRL §3.2.2.1','Enclavamientos de captación: LALL sentina, LAH estanque de agua de mar, PAH 30 s / PAHH, válvula de descarga cerrada, interlocks internos.','Modelados LAH estanque (>97 % bloquea), válvula cerrada (PAH) e hidrocarburos. No se modela la sentina ni PAHH temporizado.'],
+['P','CTRL §3.3.1','Bombas de alimentación UF: presión ≥ 2,0 barg en la succión de bombas booster.','Bombas y ΔP calculadas (ΔP prefiltros y TMP UF); la presión en la succión del booster se muestra fija (PIT 34002).'],
+['C','OPE T3-4 · §3.4','Prefiltros: 24 unidades en 2 trenes de 12, 480 m³/h por unidad, máx. 11 operando por tren + 1 en retrolavado.','Modelado con 480 m³/h y 1 BW por tren.'],
+['D','PID 0004 · OPE T3-4','Caudal por prefiltro: 439 m³/h en el P&ID vs 480 m³/h en OPE.','Se usa 480 m³/h (OPE); con 439 m³/h los 24 prefiltros apenas cubren 10.536 m³/h sin margen para retrolavado.'],
+['C','OPE T3-5 · T3-6 · PID 0010','Retrolavado de prefiltros con salmuera de OI: ΔP 0,5 bar, 18 s, 480 m³/h, 2,4 m³ por BW; estanque siempre lleno con rebose a cámara de rechazo.','Corregido: estanque 1334-TK-001 se llena desde el colector de salmuera (línea BRN), BW a 0,5 bar (alarma 0,7 bar), 18 s y 1 BW por tren.'],
+['P','OPE T3-10 · T3-11 · §3.5','UF: filtrado 55 min, BW 50 s a 2.061 m³/h, stand-by 66 s, CEB 1 + CEB 2 cada 24 h (18,5 min c/u), CIP cada 3 meses o ΔP > 1,5 bar.','BW / stand-by / CEB 1+2 modelados con esos tiempos (CEB cada 25 ciclos). CIP es manual desde el faceplate; no se dispara automáticamente por TMP > 1,5 bar (alarma desde 1,2 bar).'],
+['P','OPE T3-9','UF: TMP de diseño 0,2–0,8 bar (máx. 1,5), flux nominal 65,3 y máximo 78,3 L/m²/h.','TMP calculado; flux no se calcula (se limita el caudal por rack a 702 m³/h).'],
+['P','OPE §3.5.2','Nº de módulos UF calculado por la demanda, con autorización del operador para ponerlos en línea / fuera de línea.','Selección automática según la tabla de modularidad, sin confirmación del operador.'],
+['P','CTRL §3.4.2.1','Permisivos de arranque de OI: químicos disponibles, ≥ 1 bomba de mar y de UF en marcha, válvula de succión abierta, módulo disponible, calidad UF buena 10 min.','Modelados: ≥ 2 racks UF en servicio, nivel de cámara de rechazo < 85 %, sin fallas y estanque remineralizado no alto. Químicos y calidad 10 min no modelados.'],
+['P','CTRL §3.4.2.1','Enclavamientos del módulo OI: presión > 110 % o < 80 % de la esperada, presión de permeado > 3 bar, conductividades 15 min, parada de booster, válvulas CIP.','Implementados presión alta / baja respecto de la esperada, LAHH 36221 y falla de bombas AP / booster. Resto no modelado.'],
+['C','CTRL §3.4.2.2','Flujo de OI por VDF de la bomba intermedia con FIT de permeado, con SP desde la carga de planta.','Permeado por rack = consigna / racks en marcha (cascada FIC planta → FIC rack → VDF); velocidad por afinidad.'],
+['P','CTRL §3.4.2.3 T3-2','Analizadores de agua UF: pH 7–8,8, turbidez 0,3 (A) / 0,5 (C) NTU, redox 300 / 350 mV; 2 de 3 en redox; cuenta atrás y parada rápida con bypass.','Turbidez con alarma (A) y crítica (C) en el esquema. pH, redox 2oo3, cuenta atrás y parada rápida no modelados.'],
+['C','OPE T3-14 · T3-15','Bomba intermedia / AP 729,8 m³/h; booster y ERD 884 m³/h; 14 ERD por rack, eficiencia > 95 %.','Caudales por rack como en las tablas; ERD con η 95 % (energía recuperada visible en Energía y Eficiencia). La nomenclatura (intermedia / AP / booster) difiere entre OPE y los P&ID.'],
+['C','CRI T2-3','Calidad del producto: pH 7–8,5; cloro libre 0,2–2 mg/L; SDT < 550 mg/L; turbidez < 1 NTU.','Alarmas corregidas a 7,0–8,5 y 0,2 mg/L (antes 7,5–8,8 y 0,5).'],
+['C','CTRL §3.6','Entrega al cliente 800 / 1.000 / 1.200 L/s por fase; bombas PEAP según módulos OI en operación.','Entrega controlada en L/s (FIC 353022) con bombas = racks en marcha.'],
+['P','CTRL §3.6.1.1','PEAP: permisivos (sin nivel bajo, válvulas abiertas) y enclavamientos (LALL, PAH/PAHH 30 s, válvula cerrada).','Modelados LALL y válvula de descarga cerrada; PAH/PAHH temporizados no.'],
+['C','OPE / CRI / CTRL (descripción general) · PID 0009','Rechazo total por una única tubería a cámara de carga en la costa y retorno al mar con emisario submarino y difusores, paralelos a la captación.','Dibujado y simulado: cámara de rechazo → válvula 40" → conducción única → cámara de carga (costa) → emisario submarino y difusores en paralelo a la captación en el océano Pacífico. Volumen de la cámara de carga (120 m³) y su hidráulica son supuestos.'],
+['P','CRI T2-4','Efluente: límites DS90 (pH 5,5–9,0, etc.) e incremento de salinidad ≤ 5 % (ANZECC).','pH de la neutralización con alarma 5,5–9,0 (> 10 min). La dilución y salinidad en campo cercano no se modelan.'],
+['P','CTRL §2.1','Enclavamientos de seguridad siempre activos; de proceso y permisivos deshabilitados en modo local.','No existe modo LOCAL: MAN mantiene los enclavamientos de seguridad (disparos por válvula cerrada, LALL, PSH, etc.).'],
+['P','CTRL §2.5 · T2-5','Filosofía de alarmas: prioridades, reconocimiento, bandas muertas y retardos (flujo 5 % / 15 s; nivel 5 % / 60 s; presión 2 % / 15 s; temperatura 1 % / 60 s).','3 prioridades, reconocimiento, parpadeo y registro de eventos. No hay bandas muertas ni retardos generales (solo en neutralización y consigna no alcanzable).'],
+['P','CTRL T2-6','Modos de lazos: Manual, Automático y Cascada.','Equipos en AUTO / MAN; la cascada FIC planta → FIC racks → VDF se representa en Regulación Q.'],
+['P','CTRL §3.4.4','Bombeo CIP / flushing OI: permisivos y enclavamientos.','Flushing y CIP simulados como secuencias del rack; sin enclavamientos propios.'],
+['D','OPE §3.3.2 · CRI T3-2 · CTRL §3.2.2','Bombas de captación: OPE indica «7 en operación y 1 en stand-by» (Fase 3); CRI y CTRL indican N+1 con 6 en operación y tabla de modularidad con 6.','Se modelan 7 bombas instaladas (6 + 1), coherente con CRI, CTRL y P&ID 0003.'],
+['D','OPE (tablas de alimentación UF)','Flujo medio de alimentación a UF de Fase 2: 8.773 m³/h en una tabla y 8.733 m³/h en otras (8.071 / 0,92 = 8.773).','Valor coherente: 8.773 m³/h; las demás cifras de OPE son consistentes entre sí.'],
+['N','CTRL §3.8','Sistema DAF (obra futura de la Fase 3).','No representado (sin P&ID en el set).'],
+['N','CTRL §3.5 · CRI (químicos)','Preparación y dosificación de químicos (antincrustante, metabisulfito, CO₂, cloro, NaOH).','Sin P&ID: solo se estima el consumo eléctrico auxiliar y los valores de calidad del producto.']
+];
+const CF={st:{C:1,P:1,N:1,D:1},q:''};
+const STN={C:'Cumple',P:'Parcial',N:'No modelado',D:'Discrepancia entre documentos'};
+function liveChecks(){
+  const q=S.q,sp=S.sp,N=sp.N,ph=S.phase,L=[],cnt=(a,f)=>a.filter(f).length,rng=(v,a,b)=>v>=a&&v<=b;
+  const add=(t,ok,v)=>L.push({t:t,ok:ok,v:v});
+  add('Consigna dentro del rango de diseño de la fase (200 – '+200*(ph+3)+' L/s)',rng(sp.Ls,200,200*(ph+3)),fmt(sp.Ls)+' L/s');
+  add('Racks OI en marcha = racks requeridos por la consigna',q.nRun===N||q.nRun===0&&S.ev.blackout,q.nRun+' / '+N);
+  add('Bombas de agua de mar en marcha = N (más 1 stand-by instalada)',cnt(G.INT,o=>o.run)===q.nAct,cnt(G.INT,o=>o.run)+' / '+q.nAct);
+  add('Bombas de alimentación UF en marcha = N',cnt(G.UFF,o=>o.run)===q.nAct,cnt(G.UFF,o=>o.run)+' / '+q.nAct);
+  add('Prefiltros en servicio (incl. 1 BW por tren) = Tabla 3-4',cnt(PF,f=>f.ph<=ph&&(f.state==='SERV'||f.state==='BW'))===NPF[N],cnt(PF,f=>f.ph<=ph&&(f.state==='SERV'||f.state==='BW'))+' / '+NPF[N]);
+  add('Racks UF en servicio = Tabla 3-4',cnt(UF,u=>u.ph<=ph&&(u.state==='SERV'||u.state==='BW'||u.state==='CEB'))===NUF[N],cnt(UF,u=>u.ph<=ph&&(u.state==='SERV'||u.state==='BW'||u.state==='CEB'))+' / '+NUF[N]);
+  add('Bombas PEAP en marcha = racks (Tabla 3-4)',cnt(G.PEAP,o=>o.run)===Math.max(0,Math.ceil((sp.dLs==null?sp.cur:sp.dLs)*3.6/720-0.05)),cnt(G.PEAP,o=>o.run)+' / '+Math.max(0,Math.ceil((sp.dLs==null?sp.cur:sp.dLs)*3.6/720-0.05)));
+  add('Entrega a cliente = consigna (±3 %)',Math.abs(q.qDel/3.6-q.delSP)<=0.03*Math.max(q.delSP,1),fmt(q.qDel/3.6)+' vs '+fmt(q.delSP)+' L/s');
+  add('Recuperación OI ≈ 45 % (44–46 %)',q.nRun===0||rng(q.rec*100,44,46),fmt(q.rec*100,1)+' %');
+  add('Eficiencia UF ≥ 90 % (diseño 92 %)',q.ufEff===0||q.ufEff>=0.9,fmt(q.ufEff*100,1)+' %');
+  add('Presión de alimentación OI dentro de 80–110 % de la esperada',q.nRun===0||rng(q.P/q.Pexp,0.8,1.1),fmt(q.P,1)+' / '+fmt(q.Pexp,1)+' bar');
+  add('Caudal de salmuera ≈ 891 m³/h por rack',q.nRun===0||rng(q.qBrine/q.nRun,860,920),q.nRun?fmt(q.qBrine/q.nRun)+' m³/h':'—');
+  add('pH del producto 7,0 – 8,5',rng(q.pHrem,7,8.5),fmt(q.pHrem,2));
+  add('Cloro libre residual 0,2 – 2 mg/L',rng(q.cl,0.2,2),fmt(q.cl,2)+' mg/L');
+  add('SDT estimado del producto < 550 mg/L',0.64*q.condRem<550,fmt(0.64*q.condRem)+' mg/L');
+  add('Temperatura y SDT del agua de mar dentro del rango de diseño',rng(q.temp,10.9,19)&&rng(S.env.tds,38060,38598),fmt(q.temp,1)+' °C · '+fmt(S.env.tds)+' mg/L');
+  add('Trim de nivel de captación dentro de ±10 %',Math.abs(q.trim||0)<=0.1001,fmt((q.trim||0)*100,1)+' %');
+  add('Estanque de BW de prefiltros lleno (≥ 90 %, salmuera)',S.tk.bwP.v/S.tk.bwP.cap>=0.9||q.qBrine<20,fmt(S.tk.bwP.v/S.tk.bwP.cap*100)+' %');
+  add('ΔP media de prefiltros ≤ 0,5 bar y TMP media UF ≤ 0,8 bar',avgPFdp()<=0.5&&q.tmp<=0.8,fmt(avgPFdp(),2)+' / '+fmt(q.tmp,2)+' bar');
+  add('Balance del emisario: rechazo ≈ descarga al mar (±15 %)',Math.abs(q.qRejIn-q.qEmi)<=0.15*Math.max(q.qRejIn,1),fmt(q.qRejIn)+' vs '+fmt(q.qEmi)+' m³/h');
+  return L;
+}
+function skCum(){
+  return '<div class="vh"><h2>✔ Verificación de cumplimiento</h2><span>Modelo y esquema vs filosofía de control, criterios de diseño y filosofía de operación (Rev. 0)</span><button id="cmCsv">⬇ Exportar CSV</button></div>'+
+  '<div class="kgrid" id="cmSum"></div>'+
+  '<div class="vgrid"><div class="card wide"><h3>Verificaciones en vivo (estado actual de la simulación)</h3><div style="overflow:auto"><table class="dt" id="cmLive"></table></div><p class="note">Las desviaciones durante rampas, disparos o escenarios de falla son esperables: la lista refleja el estado instantáneo.</p></div>'+
+  '<div class="card wide"><h3>Matriz de requisitos</h3><div class="cmpf" id="cmF"></div><div style="overflow:auto"><table class="dt cm" id="cmTb"></table></div>'+
+  '<p class="note"><b>Documentos:</b> CTRL = '+DOCS.CTRL+' · CRI = '+DOCS.CRI+' · OPE = '+DOCS.OPE+' · PID = '+DOCS.PID+'.<br><b>Criterio:</b> Cumple = representado conforme al documento; Parcial = simplificado o con supuestos; No modelado = fuera del alcance del simulador; Discrepancia = los documentos (o el P&ID) se contradicen entre sí y se indica el criterio adoptado.</p></div></div>';
+}
+function renderCum(){
+  const cnt={C:0,P:0,N:0,D:0};CHK.forEach(c=>cnt[c[0]]++);
+  setH('cmSum','<div class="kc"><span>Requisitos revisados</span><b>'+CHK.length+'</b></div>'+['C','P','D','N'].map(k=>'<div class="kc"><span>'+STN[k]+'</span><b style="color:'+({C:'#2fd27a',P:'#f5b83d',D:'#ff8a50',N:'#9fb3c8'}[k])+'">'+cnt[k]+'</b></div>').join(''));
+  setH('cmF',['C','P','D','N'].map(k=>'<label class="'+(CF.st[k]?'on':'')+'" data-cf="'+k+'">'+STN[k]+'</label>').join('')+'<input type="text" id="cmQ" placeholder="Buscar (ej.: UF, PEAP, emisario…)" value="'+esc(CF.q)+'">');
+  const q=CF.q.toLowerCase();
+  const rows=CHK.filter(c=>CF.st[c[0]]&&(!q||(c[1]+' '+c[2]+' '+c[3]).toLowerCase().indexOf(q)>=0));
+  setH('cmTb','<tr><th class="tl">Estado</th><th class="tl">Referencia</th><th class="tl">Requisito</th><th class="tl">Implementación / observación</th></tr>'+rows.map(c=>'<tr><td><span class="pill '+c[0]+'">'+STN[c[0]]+'</span></td><td>'+esc(c[1])+'</td><td>'+esc(c[2])+'</td><td>'+esc(c[3])+'</td></tr>').join(''));
+}
+function updCum(){
+  const L=liveChecks(),ok=L.filter(x=>x.ok).length;
+  setH('cmLive','<tr><th class="tl">Verificación</th><th>Valor</th><th class="tl">Resultado</th></tr>'+L.map(x=>'<tr><td class="tl">'+x.t+'</td><td>'+x.v+'</td><td class="tl"><span class="pill '+(x.ok?'ok':'bad')+'">'+(x.ok?'CUMPLE':'NO CUMPLE')+'</span></td></tr>').join('')+'<tr class="tot"><td class="tl">Resumen</td><td></td><td class="tl">'+ok+' / '+L.length+' verificaciones cumplen</td></tr>');
+}
+function exportCumCsv(){
+  const rows=[['Estado','Referencia','Requisito','Implementacion / observacion']].concat(CHK.map(c=>[STN[c[0]],c[1],c[2],c[3]]));
+  dl('cumplimiento_'+stamp()+'.csv','text/csv;charset=utf-8','﻿'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\n'));
+}
+/* ---------- eventos de las pantallas ---------- */
+$('#views').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.id==='enCsv')exportEnergyCsv();
+  else if(t.id==='cmCsv')exportCumCsv();
+  else if(t.dataset.spd){setSP(S.sp.Ls+ +t.dataset.spd);updView();}
+  else if(t.dataset.sp){setSP(+t.dataset.sp);updView();}
+  else if(t.dataset.cf){CF.st[t.dataset.cf]=CF.st[t.dataset.cf]?0:1;renderCum();}
+});
+$('#views').addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='cmQ'){CF.q=t.value;const p=t.selectionStart;renderCum();const n=$('#cmQ');if(n){n.focus();n.setSelectionRange(p,p);}}
+  else if(t.id==='rgSl'){const n=$('#rgNum');if(n)n.value=t.value;}
+});
+$('#views').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='rgNum'||t.id==='rgSl'){setSP(+t.value);updView();}
+  else if(t.id==='rgRamp'){setRamp(+t.value);}
+  else if(t.id==='rgFollow'){if(t.checked)setDem(null);else setDem(Math.round(S.sp.cur));updView();}
+  else if(t.id==='rgDem'){setDem(+t.value);}
+  else if(t.id==='pgSel'||t.id==='enSel'||t.id==='enOn'){updView();}
+});
+
+/* ---------- bucle ---------- */
+function render(){
+  UPD.forEach(f=>f());
+  $('#clock').textContent=simTime(S.t);
+  KP.forEach((k,i)=>{const e=$('#kp'+i);if(e)e.innerHTML=fmt(k[2](),k[3])+'<small>'+k[1]+'</small>';});
+  faceUpd();renderAlm();renderLog();scenSync();
+}
+let tickN=0;
+function tick(){
+  if(S.run){let rem=0.25*S.speed;while(rem>0){const d=Math.min(10,rem);step(d);rem-=d;}}
+  render();if(++tickN%4===0)drawTrend();if(VIEW!=='pid'&&tickN%2===0)updView();
+}
+$('#btnRun').onclick=()=>{S.run=!S.run;$('#btnRun').textContent=S.run?'⏸ Pausa':'▶ Continuar';$('#btnRun').classList.toggle('on',S.run);svg.classList.toggle('paused',!S.run);};
+$('#selSpeed').onchange=e=>{S.speed=+e.target.value;};
+$('#selPhase').onchange=e=>{reset(+e.target.value);S.run=true;S.speed=+$('#selSpeed').value;buildScen();almSig='';logSig='';};
+/* ---------- arranque ---------- */
+reset(3);S.run=true;S.speed=60;
+const sv=document.getElementById('saved');
+if(sv){try{const js=JSON.parse(sv.textContent);restore(js);S.run=true;$('#selPhase').value=S.phase;$('#selSpeed').value=S.speed;}catch(err){}}
+drawBg();buildMain();drawLegend();buildKpi();buildScen();buildChips();showView('pid');fit();render();
+setInterval(tick,250);
+window.addEventListener('beforeprint',()=>fit());
+})();
+</script>
+</body>
+</html>
