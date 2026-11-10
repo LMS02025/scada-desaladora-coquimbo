@@ -25,3 +25,8 @@ Carga mínima 70 % por rack de OI; rampa de consigna 20 L/s/min; cámara de carg
 - Arquitectura de control basada en IC-PLA-0001 / IC-DGB-0001/0002: DCS por área, anillo de fibra + radio, servidores y enlace ADV; las fallas congelan datos o paran el área.
 - Botones con efecto 3D (relieve / hundimiento) y fondo gris oscuro con efecto acero cepillado (sin temas día/noche/luna).
 - Supuestos: asignación bomba–tablero aproximada; bombas intermedias de OI y 1353-PLC-001 no modelados en detalle; estanque final 8.000 m³ supuesto.
+
+## Revisión contra las Bases de Licitación (BALI) y tema claro/oscuro
+- Verificación en vivo ampliada a 34 chequeos; nuevos según BALI: calidad de agua potable (pH, cloro libre 1,0–2,0 mg/L, SDT ≤ 1.000, conductividad ≤ 1.500 µS/cm, LSI +0,1…+0,5, dureza y alcalinidad 60–120, turbiedad < 1 NTU, flúor), permeado (SDT < 450, Cl⁻ < 200), conversión OI ≤ 48 % y global ≥ 41 %, estanque PDAM ≥ 1.500 m³, planta elevadora con VDF y reserva, producción garantizada 800 L/s.
+- Matriz de requisitos con filas BALI; P&ID con analizadores de flúor y LSI; alarmas de cloro (< 1,0 / > 2,0) y LSI.
+- Botón Claro/Oscuro con alto contraste (se recuerda la elección y se propaga a las ventanas acopladas).
