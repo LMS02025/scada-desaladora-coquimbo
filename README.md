@@ -23,5 +23,5 @@ Carga mínima 70 % por rack de OI; rampa de consigna 20 L/s/min; cámara de carg
 ## Actualización (unilineal y control según láminas + temas)
 - Unilineal eléctrico basado en láminas EL-DGU-0001…0006 (PEAM 13,2 kV, CB01, SW-002/003/004 de 4,16 kV, CCM 400 V, generador); las aperturas de interruptor disparan los equipos del SCADA.
 - Arquitectura de control basada en IC-PLA-0001 / IC-DGB-0001/0002: DCS por área, anillo de fibra + radio, servidores y enlace ADV; las fallas congelan datos o paran el área.
-- Botones con efecto 3D (relieve / hundimiento) y temas Día, Noche y Luna (automático según la hora simulada).
+- Botones con efecto 3D (relieve / hundimiento) y fondo gris oscuro con efecto acero cepillado (sin temas día/noche/luna).
 - Supuestos: asignación bomba–tablero aproximada; bombas intermedias de OI y 1353-PLC-001 no modelados en detalle; estanque final 8.000 m³ supuesto.
