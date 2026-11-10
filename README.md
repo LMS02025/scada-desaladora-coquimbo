@@ -19,3 +19,9 @@ Abrir `index.html` en el navegador, o publicarlo con GitHub Pages (Settings → 
 
 ## Supuestos del modelo
 Carga mínima 70 % por rack de OI; rampa de consigna 20 L/s/min; cámara de carga del emisario 120 m³; conducción 5.000 m³ y estanque final 8.000 m³ (sin lámina P&ID en el set), demanda de red ±12 % diario; topologías eléctrica y de control esquemáticas (no tomadas de los planos EL-DGU / IC-PLA-0001); curvas de bombas típicas (no de fabricante). Es un simulador didáctico, **no** reemplaza el sistema de control real.
+
+## Actualización (unilineal y control según láminas + temas)
+- Unilineal eléctrico basado en láminas EL-DGU-0001…0006 (PEAM 13,2 kV, CB01, SW-002/003/004 de 4,16 kV, CCM 400 V, generador); las aperturas de interruptor disparan los equipos del SCADA.
+- Arquitectura de control basada en IC-PLA-0001 / IC-DGB-0001/0002: DCS por área, anillo de fibra + radio, servidores y enlace ADV; las fallas congelan datos o paran el área.
+- Botones con efecto 3D (relieve / hundimiento) y temas Día, Noche y Luna (automático según la hora simulada).
+- Supuestos: asignación bomba–tablero aproximada; bombas intermedias de OI y 1353-PLC-001 no modelados en detalle; estanque final 8.000 m³ supuesto.
